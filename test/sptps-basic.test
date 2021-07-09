@@ -1,32 +1,38 @@
 #!/bin/sh
 
+# shellcheck source=testlib.sh
 . "${0%/*}/testlib.sh"
 
-# Skip this test if we did not compile sptps_test
+echo [STEP] Skip this test if we did not compile sptps_test
 
-test -e $sptps_test -a -e $sptps_keypair || exit 77
+test -e "$SPTPS_TEST" -a -e "$SPTPS_KEYPAIR" || exit "$EXIT_SKIP_TEST"
 
-# Generate keys
+echo [STEP] Generate keys
 
-mkdir -p $d1
+mkdir -p "$DIR_FOO"
+$SPTPS_KEYPAIR "$DIR_FOO/server.priv" "$DIR_FOO/server.pub"
+$SPTPS_KEYPAIR "$DIR_FOO/client.priv" "$DIR_FOO/client.pub"
 
-$sptps_keypair $d1/server.priv $d1/server.pub
-$sptps_keypair $d1/client.priv $d1/client.pub
+echo [STEP] Test transfer of a simple file
 
-# Test transfer of a simple file.
+reference=sptps-basic.test
 
-(sleep 1; $sptps_test -4 -q $d1/client.priv $d1/server.pub localhost 32750 <Makefile) &
-$sptps_test -4 $d1/server.priv $d1/client.pub 32750 >$d1/out1
-cmp $d1/out1 Makefile
+(
+  sleep 3
+  $SPTPS_TEST -4 -q "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 <"$reference"
+) &
 
-$sptps_test -4 -q $d1/server.priv $d1/client.pub 32750 <Makefile &
-sleep 1
-$sptps_test -4 $d1/client.priv $d1/server.pub localhost 32750 > $d1/out2
-cmp $d1/out2 Makefile
+$SPTPS_TEST -4 "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 >"$DIR_FOO/out1"
+diff -w "$DIR_FOO/out1" "$reference"
 
-# Datagram mode
+$SPTPS_TEST -4 -q "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 <"$reference" &
+sleep 3
+$SPTPS_TEST -4 "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 >"$DIR_FOO/out2"
+diff -w "$DIR_FOO/out2" "$reference"
 
-$sptps_test -4 -dq $d1/server.priv $d1/client.pub 32750 <Makefile &
-sleep 1
-sleep 1 | $sptps_test -4 -dq $d1/client.priv $d1/server.pub localhost 32750 >$d1/out3
-cmp $d1/out3 Makefile
+echo [STEP] Datagram mode
+
+$SPTPS_TEST -4 -dq "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 <"$reference" &
+sleep 3
+sleep 3 | $SPTPS_TEST -4 -dq "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 >"$DIR_FOO/out3"
+diff -w "$DIR_FOO/out3" "$reference"

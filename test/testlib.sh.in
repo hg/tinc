@@ -1,46 +1,315 @@
 #!/bin/sh
 
-# Paths to executables
+set -ex
 
-tincd=../src/tincd@EXEEXT@
-tinc=../src/tinc@EXEEXT@
-sptps_test=../src/sptps_test@EXEEXT@
-sptps_keypair=../src/sptps_keypair@EXEEXT@
+echo [STEP] Initialize test library
+
+# Paths to compiled executables
+
+# realpath on FreeBSD fails if the path does not exist.
+realdir() {
+  [ -e "$1" ] || mkdir -p "$1"
+  if type realpath >/dev/null; then
+    realpath "$1"
+  else
+    readlink -f "$1"
+  fi
+}
+
+tincd_path=$(realdir "../src/tincd@EXEEXT@")
+tinc_path=$(realdir "../src/tinc@EXEEXT@")
+
+SPTPS_TEST=$(realdir "../src/sptps_test@EXEEXT@")
+SPTPS_KEYPAIR=$(realdir "../src/sptps_keypair@EXEEXT@")
+
+# Exit status list
+EXIT_SKIP_TEST=77
+EXIT_TIMEOUT=124
 
 # Test directories
 
-scriptname=`basename $0`
+# Reuse script name if it was passed in an env var (when imported from tinc scripts).
+if [ -z "$scriptname" ]; then
+  scriptname=$(basename "$0")
+fi
 
-n1=$scriptname.1
-n2=$scriptname.2
-n3=$scriptname.3
+# Network names for tincd daemons.
+net1=$scriptname.1
+net2=$scriptname.2
+net3=$scriptname.3
 
-d1=$PWD/$n1
-d2=$PWD/$n2
-d3=$PWD/$n3
+# Configuration/pidfile directories for tincd daemons.
+DIR_FOO=$(realdir "$PWD/$net1")
+DIR_BAR=$(realdir "$PWD/$net2")
+DIR_BAZ=$(realdir "$PWD/$net3")
 
-# Default arguments for both tinc and tincd
+# Register helper functions
 
-c1="-n $n1 --config=$d1 --pidfile=$d1/pid"
-c2="-n $n2 --config=$d2 --pidfile=$d2/pid"
-c3="-n $n3 --config=$d3 --pidfile=$d3/pid"
+# Is this msys2?
+is_windows() {
+  test "$(uname -o)" = Msys
+}
 
-# Arguments when running tincd
+# Are we running on a CI server?
+is_ci() {
+  test "$CI"
+}
 
-r1="--logfile=$d1/log -d5"
-r2="--logfile=$d2/log -d5"
-r3="--logfile=$d3/log -d5"
+# Prints message to stderr to avoid using redirects everywhere.
+stderr() {
+  echo >&2 "$@"
+}
 
-# Check for leftover tinc daemons
+# Dump error message and exit with an error.
+bail() {
+  stderr "$@"
+  exit 1
+}
 
-[ -f $d1/pid ] && $tinc $c1 stop
-[ -f $d2/pid ] && $tinc $c2 stop
-[ -f $d3/pid ] && $tinc $c3 stop
+# Remove carriage returns to normalize strings on Windows for easier comparisons.
+rm_cr() {
+  tr -d '\r'
+}
 
-# Remove test directories
+# Executes whatever is passed to it, checking that the resulting exit code is non-zero.
+must_fail() {
+  if "$@"; then
+    bail "expected a non-zero exit code"
+  fi
+}
 
-rm -rf $d1 $d2 $d3
+# Runs its arguments with timeout(1) or gtimeout(1) if either are installed.
+# Usage: try_limit_time 10 command --with --args
+try_limit_time() {
+  time=$1
+  shift
 
-# Exit on errors, log all commands being executed
+  if type timeout >/dev/null; then
+    timeout --foreground "$time" "$@"
+  elif type gtimeout >/dev/null; then
+    gtimeout --foreground "$time" "$@"
+  else
+    "$@"
+  fi
+}
 
-set -ex
+# wc -l on mac prints whitespace before the actual number.
+# This is simplest cross-platform alternative without that behavior.
+count_lines() {
+  awk 'END{ print NR }'
+}
+
+# Calls compiled tinc, passing any supplied arguments.
+# Usage: tinc { foo | bar | baz } --arg1 val1 "$args"
+tinc() {
+  peer=$1
+  shift
+
+  case "$peer" in
+  foo) try_limit_time 30 "$tinc_path" -n "$net1" --config="$DIR_FOO" --pidfile="$DIR_FOO/pid" "$@" ;;
+  bar) try_limit_time 30 "$tinc_path" -n "$net2" --config="$DIR_BAR" --pidfile="$DIR_BAR/pid" "$@" ;;
+  baz) try_limit_time 30 "$tinc_path" -n "$net3" --config="$DIR_BAZ" --pidfile="$DIR_BAZ/pid" "$@" ;;
+  *) bail "invalid command [[$peer $*]]" ;;
+  esac
+}
+
+# Calls compiled tincd, passing any supplied arguments.
+# Usage: tincd { foo | bar | baz } --arg1 val1 "$args"
+tincd() {
+  peer=$1
+  shift
+
+  case "$peer" in
+  foo) try_limit_time 30 "$tincd_path" -n "$net1" --config="$DIR_FOO" --pidfile="$DIR_FOO/pid" --logfile="$DIR_FOO/log" -d5 "$@" ;;
+  bar) try_limit_time 30 "$tincd_path" -n "$net2" --config="$DIR_BAR" --pidfile="$DIR_BAR/pid" --logfile="$DIR_BAR/log" -d5 "$@" ;;
+  baz) try_limit_time 30 "$tincd_path" -n "$net3" --config="$DIR_BAZ" --pidfile="$DIR_BAZ/pid" --logfile="$DIR_BAZ/log" -d5 "$@" ;;
+  *) bail "invalid command [[$peer $*]]" ;;
+  esac
+}
+
+# Start the specified tinc daemon.
+# usage: start_tinc { foo | bar | baz }
+start_tinc() {
+  peer=$1
+  shift
+
+  case "$peer" in
+  foo) tinc "$peer" start --logfile="$DIR_FOO/log" -d5 "$@" ;;
+  bar) tinc "$peer" start --logfile="$DIR_BAR/log" -d5 "$@" ;;
+  baz) tinc "$peer" start --logfile="$DIR_BAZ/log" -d5 "$@" ;;
+  *) bail "invalid peer $peer" ;;
+  esac
+}
+
+# Stop all tinc clients.
+stop_all_tincs() {
+  (
+    # In case these pid files are mangled.
+    set +e
+    [ -f "$DIR_FOO/pid" ] && stop_tinc foo
+    [ -f "$DIR_BAR/pid" ] && stop_tinc bar
+    [ -f "$DIR_BAZ/pid" ] && stop_tinc baz
+    true
+  )
+}
+
+# Checks that the number of reachable nodes matches what is expected.
+# usage: require_nodes node_name expected_number
+require_nodes() {
+  stderr "Check that we're able to reach tincd"
+  test "$(tinc "$1" pid | count_lines)" = 1
+
+  stderr "Check the number of reachable nodes for $1 (expecting $2)"
+  actual="$(tinc "$1" dump reachable nodes | count_lines)"
+
+  if [ "$actual" != "$2" ]; then
+    stderr "tinc $1: expected $2 reachable nodes, got $actual"
+    exit 1
+  fi
+}
+
+peer_directory() {
+  case "$peer" in
+  foo) echo "$DIR_FOO" ;;
+  bar) echo "$DIR_BAR" ;;
+  baz) echo "$DIR_BAZ" ;;
+  *) bail "invalid peer $peer" ;;
+  esac
+}
+
+script_status_log() {
+  peer=$1
+  script=$(echo "$2" | sed 's:/:-:g')
+  dir=$(peer_directory "$script")
+  echo "$dir/$$.$peer.$script.script-log"
+}
+
+# Create tincd script which runs asynchronously.
+# Sends SIGCONT to test script when child script finishes executing, or SIGTERM on failure.
+# usage: create_script { foo | bar | baz } { tinc-up | host-down | ... } 'script content'
+create_script() {
+  peer=$1
+  script=$2
+  shift 2
+
+  # This is an append-only log of the script's executions.
+  script_log=$(script_status_log "$peer" "$script")
+  printf '' >"$script_log"
+
+  # This is the line that we should start from when
+  # reading that log while waiting for script events.
+  script_log_line=$script_log.line
+  printf 1 >"$script_log_line"
+
+  dir=$(peer_directory "$script")
+  script=$dir/$script
+
+  cat >"$script" <<EOF
+#!/bin/sh
+set -e
+(
+  (
+    cd "$PWD"
+    scriptname="$scriptname" . ./testlib.sh
+    echo started \$$ "NETNAME=\$NETNAME NAME=\$NAME DEVICE=\$DEVICE INTERFACE=\$INTERFACE NODE=\$NODE REMOTEADDRESS=\$REMOTEADDRESS REMOTEPORT=\$REMOTEPORT SUBNET=\$SUBNET WEIGHT=\$WEIGHT INVITATION_FILE=\$INVITATION_FILE INVITATION_URL=\$INVITATION_URL" >>"$script_log"
+    $@
+    echo finished \$$ >>"$script_log"
+  ) || kill -TERM $$
+) >>'$script.output' 2>&1
+EOF
+
+  chmod u+x "$script"
+
+  if is_windows; then
+    echo "@$MINGW_SHELL '$script'" >"$script.cmd"
+  fi
+}
+
+# Waits for `peer`'s script `script` to finish `count` number of times.
+# usage: wait_script { foo | bar | baz } { tinc-up | host-up | ... } [count=1]
+wait_script() {
+  peer=$1
+  script=$2
+  count=$3
+
+  if [ -z "$count" ] || [ "$count" -lt 1 ]; then
+    count=1
+  fi
+
+  # Find out the location of the log and how many lines we should skip
+  # (because we've already seen them in previous invocations of wait_script).
+  script_log=$(script_status_log "$peer" "$script")
+  script_log_line=$script_log.line
+  line=$(cat "$script_log_line")
+
+  # Starting from $line, read until $count matches are found.
+  # Print the number of the last matching line and exit.
+  # Newer version of GNU tail terminate by themselves when the pipe breaks,
+  # for all other versions we have to do an explicit `kill` here.
+  new_line=$(
+    try_limit_time 60 \
+      sh -c "
+        tail -n '+$line' -f '$script_log' | {
+          grep -n -m '$count' '^finished'
+          pkill -x -g 0 tail
+        }
+      " | awk -F: 'END { print $1 }'
+  )
+
+  # Save the next line number for future reference. We'll use it if
+  # wait_script is called again with same $peer and $script.
+  printf "%d" "$((line + new_line))" >"$script_log_line"
+}
+
+# Cleanup after running each script.
+cleanup() {
+  (
+    set +ex
+
+    stop_all_tincs
+
+    # Ask nicely, then kill anything that's left.
+    if is_ci; then
+      kill_processes() {
+        signal=$1
+        shift
+        for process in "$@"; do
+          pkill -"SIG$signal" -x -u "$(id -u)" "$process"
+        done
+      }
+      stderr "CI server detected, performing aggressive cleanup"
+      kill_processes TERM tinc tincd
+      kill_processes KILL tinc tincd
+    fi
+  ) || true
+}
+
+# On Windows, `tinc stop` returns 1 on success and 0 on failure,
+# i.e. the opposite of what happens on UNIX-like operating systems.
+if is_windows; then
+  stop_tinc() { ! tinc "$1" stop; }
+else
+  stop_tinc() { tinc "$1" stop; }
+fi
+
+# Generate path to current shell which can be used from Windows applications.
+if is_windows; then
+  MINGW_SHELL=$(cygpath --mixed -- "$SHELL")
+fi
+
+# This was called from a tincd script. Skip executing commands with side effects.
+[ -n "$NAME" ] && return
+
+echo [STEP] Check for leftover tinc daemons and test directories
+
+# Cleanup leftovers from previous runs.
+stop_all_tincs
+
+# On Windows this can actually fail. We don't want to suppress possible failure with -f.
+if [ -d "$DIR_FOO" ]; then rm -r "$DIR_FOO"; fi
+if [ -d "$DIR_BAR" ]; then rm -r "$DIR_BAR"; fi
+if [ -d "$DIR_BAZ" ]; then rm -r "$DIR_BAZ"; fi
+
+# Register cleanup function so we don't have to call it everywhere
+# (and failed scripts do not leave stray tincd running).
+trap cleanup EXIT INT TERM
