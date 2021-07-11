@@ -7,6 +7,8 @@ echo [STEP] Skip this test if we did not compile sptps_test
 
 test -e "$SPTPS_TEST" -a -e "$SPTPS_KEYPAIR" || exit $EXIT_SKIP_TEST
 
+port=30080
+
 echo [STEP] Generate keys
 
 mkdir -p "$DIR_FOO"
@@ -19,20 +21,20 @@ reference=sptps-basic.test
 
 (
   sleep 3
-  $SPTPS_TEST -4 -q "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 <"$reference"
+  $SPTPS_TEST -4 -q "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost $port <"$reference"
 ) &
 
-$SPTPS_TEST -4 "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 >"$DIR_FOO/out1"
+$SPTPS_TEST -4 "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" $port >"$DIR_FOO/out1"
 diff -w "$DIR_FOO/out1" "$reference"
 
-$SPTPS_TEST -4 -q "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 <"$reference" &
+$SPTPS_TEST -4 -q "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" $port <"$reference" &
 sleep 3
-$SPTPS_TEST -4 "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 >"$DIR_FOO/out2"
+$SPTPS_TEST -4 "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost $port >"$DIR_FOO/out2"
 diff -w "$DIR_FOO/out2" "$reference"
 
 echo [STEP] Datagram mode
 
-$SPTPS_TEST -4 -dq "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" 32750 <"$reference" &
+$SPTPS_TEST -4 -dq "$DIR_FOO/server.priv" "$DIR_FOO/client.pub" $port <"$reference" &
 sleep 3
-sleep 3 | $SPTPS_TEST -4 -dq "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost 32750 >"$DIR_FOO/out3"
+sleep 3 | $SPTPS_TEST -4 -dq "$DIR_FOO/client.priv" "$DIR_FOO/server.pub" localhost $port >"$DIR_FOO/out3"
 diff -w "$DIR_FOO/out3" "$reference"

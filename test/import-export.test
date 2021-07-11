@@ -8,7 +8,7 @@ echo [STEP] Initialize three nodes
 tinc foo <<EOF
 init foo
 set DeviceType dummy
-set Port 32752
+set Port 30000
 set Address localhost
 EOF
 

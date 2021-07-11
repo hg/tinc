@@ -11,7 +11,7 @@ set DeviceType dummy
 set Mode switch
 set Broadcast no
 set Address localhost
-set Port 32758
+set Port 30020
 EOF
 
 echo [STEP] Generate an invitation offline and let another node join the VPN

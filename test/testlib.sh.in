@@ -26,17 +26,21 @@ SPTPS_KEYPAIR=$(realdir "../src/sptps_keypair@EXEEXT@")
 EXIT_SKIP_TEST=77
 EXIT_TIMEOUT=124
 
+# The list of the environment variables that tinc injects into the scripts it calls.
+# shellcheck disable=SC2016
+TINC_SCRIPT_VARS='$NETNAME,$NAME,$DEVICE,$IFACE,$NODE,$REMOTEADDRESS,$REMOTEPORT,$SUBNET,$WEIGHT,$INVITATION_FILE,$INVITATION_URL,$DEBUG'
+
 # Test directories
 
 # Reuse script name if it was passed in an env var (when imported from tinc scripts).
-if [ -z "$scriptname" ]; then
-  scriptname=$(basename "$0")
+if [ -z "$SCRIPTNAME" ]; then
+  SCRIPTNAME=$(basename "$0")
 fi
 
 # Network names for tincd daemons.
-net1=$scriptname.1
-net2=$scriptname.2
-net3=$scriptname.3
+net1=$SCRIPTNAME.1
+net2=$SCRIPTNAME.2
+net3=$SCRIPTNAME.3
 
 # Configuration/pidfile directories for tincd daemons.
 DIR_FOO=$(realdir "$PWD/$net1")
@@ -55,14 +59,9 @@ is_ci() {
   test "$CI"
 }
 
-# Prints message to stderr to avoid using redirects everywhere.
-stderr() {
-  echo >&2 "$@"
-}
-
 # Dump error message and exit with an error.
 bail() {
-  stderr "$@"
+  echo >&2 "$@"
   exit 1
 }
 
@@ -156,14 +155,14 @@ stop_all_tincs() {
 # Checks that the number of reachable nodes matches what is expected.
 # usage: require_nodes node_name expected_number
 require_nodes() {
-  stderr "Check that we're able to reach tincd"
+  echo >&2 "Check that we're able to reach tincd"
   test "$(tinc "$1" pid | count_lines)" = 1
 
-  stderr "Check the number of reachable nodes for $1 (expecting $2)"
+  echo >&2 "Check the number of reachable nodes for $1 (expecting $2)"
   actual="$(tinc "$1" dump reachable nodes | count_lines)"
 
   if [ "$actual" != "$2" ]; then
-    stderr "tinc $1: expected $2 reachable nodes, got $actual"
+    echo >&2 "tinc $1: expected $2 reachable nodes, got $actual"
     exit 1
   fi
 }
@@ -177,52 +176,62 @@ peer_directory() {
   esac
 }
 
-script_status_log() {
-  peer=$1
-  script=$(echo "$2" | sed 's:/:-:g')
-  dir=$(peer_directory "$script")
-  echo "$dir/$$.$peer.$script.script-log"
+# This is an append-only log of all scripts executed by all peers.
+script_runs_log() {
+  echo "$(peer_directory "$1")/script-runs.log"
 }
 
-# Create tincd script which runs asynchronously.
-# Sends SIGCONT to test script when child script finishes executing, or SIGTERM on failure.
+# Create tincd script. If it fails, it kills the test script with SIGTERM.
 # usage: create_script { foo | bar | baz } { tinc-up | host-down | ... } 'script content'
 create_script() {
   peer=$1
   script=$2
   shift 2
 
-  # This is an append-only log of the script's executions.
-  script_log=$(script_status_log "$peer" "$script")
-  printf '' >"$script_log"
+  # This is the line that we should start from when reading the script execution log while waiting
+  # for $script from $peer. It is a poor man's hash map to avoid polluting tinc's home directory with
+  # "last seen" files. There seem to be no good solutions to this that are compatible with all shells.
+  line_var=$(next_line_var "$peer" "$script")
 
-  # This is the line that we should start from when
-  # reading that log while waiting for script events.
-  script_log_line=$script_log.line
-  printf 1 >"$script_log_line"
-
-  dir=$(peer_directory "$script")
-  script=$dir/$script
-
-  cat >"$script" <<EOF
-#!/bin/sh
-set -e
-(
-  (
-    cd "$PWD"
-    scriptname="$scriptname" . ./testlib.sh
-    echo started \$$ "NETNAME=\$NETNAME NAME=\$NAME DEVICE=\$DEVICE INTERFACE=\$INTERFACE NODE=\$NODE REMOTEADDRESS=\$REMOTEADDRESS REMOTEPORT=\$REMOTEPORT SUBNET=\$SUBNET WEIGHT=\$WEIGHT INVITATION_FILE=\$INVITATION_FILE INVITATION_URL=\$INVITATION_URL" >>"$script_log"
-    $@
-    echo finished \$$ >>"$script_log"
-  ) || kill -TERM $$
-) >>'$script.output' 2>&1
+  # We must reassign it here in case the script is recreated.
+  # shellcheck disable=SC2229
+  read -r "$line_var" <<EOF
+1
 EOF
 
-  chmod u+x "$script"
+  # Full path to the script.
+  script_path=$(peer_directory "$peer")/$script
+
+  # Full path to the script execution log (one for each peer).
+  script_log=$(script_runs_log "$peer")
+  printf '' >"$script_log"
+
+  # Script output is redirected into /dev/null. Otherwise, it ends up
+  # in tinc's output and breaks things like 'tinc invite'.
+  cat >"$script_path" <<EOF
+#!/bin/sh
+(
+  cd "$PWD" || exit 1
+  SCRIPTNAME="$SCRIPTNAME" . ./testlib.sh
+  $@
+  echo "$script,\$$,$TINC_SCRIPT_VARS" >>"$script_log"
+) >/dev/null 2>&1 || kill -TERM $$
+EOF
+
+  chmod u+x "$script_path"
 
   if is_windows; then
-    echo "@$MINGW_SHELL '$script'" >"$script.cmd"
+    echo "@$MINGW_SHELL '$script_path'" >"$script_path.cmd"
   fi
+}
+
+# Returns the name of the variable that contains the line number
+# we should read next when waiting on $script from $peer.
+# usage: next_line_var foo host-up
+next_line_var() {
+  peer=$1
+  script=$(echo "$2" | sed 's/[^a-zA-Z0-9]/_/g')
+  printf "%s" "next_line_${peer}_${script}"
 }
 
 # Waits for `peer`'s script `script` to finish `count` number of times.
@@ -237,28 +246,46 @@ wait_script() {
   fi
 
   # Find out the location of the log and how many lines we should skip
-  # (because we've already seen them in previous invocations of wait_script).
-  script_log=$(script_status_log "$peer" "$script")
-  script_log_line=$script_log.line
-  line=$(cat "$script_log_line")
+  # (because we've already seen them in previous invocations of wait_script
+  # for current $peer and $script).
+  line_var=$(next_line_var "$peer" "$script")
+
+  # eval is the only solution supported by POSIX shells.
+  # https://github.com/koalaman/shellcheck/wiki/SC3053
+  #   1. $line_var expands into 'next_line_foo_hosts_bar_up'
+  #   2. the name is substituted and the command becomes 'echo "$next_line_foo_hosts_bar_up"'
+  #   3. the command is evaluated and the line number is assigned to $line
+  line=$(eval "echo \"\$$line_var\"")
+
+  # This is the file that we monitor for script execution records.
+  script_log=$(script_runs_log "$peer")
 
   # Starting from $line, read until $count matches are found.
   # Print the number of the last matching line and exit.
-  # Newer version of GNU tail terminate by themselves when the pipe breaks,
-  # for all other versions we have to do an explicit `kill` here.
+  # GNU tail 2.82 and newer terminates by itself when the pipe breaks.
+  # To support other tails we do an explicit `kill` of the whole process group.
   new_line=$(
     try_limit_time 60 \
       sh -c "
+        set -m
         tail -n '+$line' -f '$script_log' | {
-          grep -n -m '$count' '^finished'
+          grep -n -m '$count' '^$script,'
           pkill -x -g 0 tail
         }
       " | awk -F: 'END { print $1 }'
   )
 
-  # Save the next line number for future reference. We'll use it if
+  # Remember the next line number for future reference. We'll use it if
   # wait_script is called again with same $peer and $script.
-  printf "%d" "$((line + new_line))" >"$script_log_line"
+  read -r "${line_var?}" <<EOF
+$((line + new_line))
+EOF
+}
+
+# Are we running tests in parallel?
+is_parallel() {
+  # Grep the make flags for any of: '-j', '-j5', '-j 42', but not 'n-j', '-junk'.
+  echo "$MAKEFLAGS" | grep -E -q '(^|[[:space:]])-j[[:digit:]]*([[:space:]]|$)'
 }
 
 # Cleanup after running each script.
@@ -269,7 +296,7 @@ cleanup() {
     stop_all_tincs
 
     # Ask nicely, then kill anything that's left.
-    if is_ci; then
+    if is_ci && ! is_parallel; then
       kill_processes() {
         signal=$1
         shift
@@ -277,7 +304,7 @@ cleanup() {
           pkill -"SIG$signal" -x -u "$(id -u)" "$process"
         done
       }
-      stderr "CI server detected, performing aggressive cleanup"
+      echo >&2 "CI server detected, performing aggressive cleanup"
       kill_processes TERM tinc tincd
       kill_processes KILL tinc tincd
     fi

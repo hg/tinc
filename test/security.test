@@ -12,8 +12,8 @@ which timeout >/dev/null || {
   alias timeout=gtimeout
 }
 
-foo_port=32754
-bar_port=32755
+foo_port=30050
+bar_port=30051
 
 # usage: splice protocol_version
 splice() {
@@ -28,9 +28,9 @@ send_with_timeout() {
 
   result=$(
     (
-      sleep 2
+      sleep 6
       printf "%s\n" "$data"
-    ) | timeout 5 nc localhost $foo_port
+    ) | timeout 10 nc localhost $foo_port
   ) && exit 1
 
   test $? = $EXIT_TIMEOUT
@@ -49,20 +49,20 @@ init foo
 set DeviceType dummy
 set Port $foo_port
 set Address localhost
-set PingTimeout 1
+set PingTimeout 3
 set AutoConnect no
-set Subnet 10.98.98.1
+set Subnet 10.96.96.1
 EOF
 
 tinc bar <<EOF
 init bar
 set DeviceType dummy
 set Port $bar_port
-set PingTimeout 1
-set MaxTimeout 1
+set PingTimeout 3
+set MaxTimeout 3
 set ExperimentalProtocol no
 set AutoConnect no
-set Subnet 10.98.98.2
+set Subnet 10.96.96.2
 EOF
 
 echo [STEP] Exchange host config files

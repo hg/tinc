@@ -5,10 +5,13 @@
 
 echo [STEP] Initializing server node
 
+port_foo=30040
+port_bar=30041
+
 tinc foo <<EOF
 init foo
 set DeviceType dummy
-set Port 32759
+set Port $port_foo
 set Address 127.0.0.1
 add Subnet 10.0.0.1
 add Subnet fec0::/64
@@ -32,9 +35,7 @@ for script in \
       if is_windows && [ -n "\$INVITATION_FILE" ]; then
         INVITATION_FILE=\$(cygpath --unix -- "\$INVITATION_FILE")
       fi
-      echo >>'$OUT' "$script" "\$NETNAME,\$NAME,\$DEVICE,\$IFACE,\$NODE," \
-                              "\$REMOTEADDRESS,\$REMOTEPORT,\$SUBNET,\$WEIGHT," \
-                              "\$INVITATION_FILE,\$INVITATION_URL,\$DEBUG"
+      echo >>'$OUT' "$script" "$TINC_SCRIPT_VARS"
 EOF
   )
 
@@ -69,7 +70,7 @@ echo [STEP] Starting client node
 
 tinc bar <<EOF
 set DeviceType dummy
-set Port 32760
+set Port $port_bar
 add Subnet 10.0.0.2
 add Subnet fec0::/64#5
 EOF
@@ -105,25 +106,25 @@ invitation-created netname2,foo,,,bar,,,,,$DIR_FOO/invitations/$file,$url,
 bar-invited
 invitation-accepted netname,foo,dummy,,bar,127.0.0.1,,,,,,5
 bar-joined
-host-up netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-hosts/bar-up netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-subnet-up netname,foo,dummy,,bar,127.0.0.1,32760,10.0.0.2,,,,5
-subnet-up netname,foo,dummy,,bar,127.0.0.1,32760,fec0::/64,5,,,5
+host-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+hosts/bar-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+subnet-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,10.0.0.2,,,,5
+subnet-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,fec0::/64,5,,,5
 bar-started-1
-host-down netname,foo,dummy,,bar,127.0.0.1,32760,,,,,4
-hosts/bar-down netname,foo,dummy,,bar,127.0.0.1,32760,,,,,4
-subnet-down netname,foo,dummy,,bar,127.0.0.1,32760,10.0.0.2,,,,4
-subnet-down netname,foo,dummy,,bar,127.0.0.1,32760,fec0::/64,5,,,4
+host-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,4
+hosts/bar-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,4
+subnet-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,10.0.0.2,,,,4
+subnet-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,fec0::/64,5,,,4
 bar-stopped
-host-up netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-hosts/bar-up netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-subnet-up netname,foo,dummy,,bar,127.0.0.1,32760,10.0.0.2,,,,5
-subnet-up netname,foo,dummy,,bar,127.0.0.1,32760,fec0::/64,5,,,5
+host-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+hosts/bar-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+subnet-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,10.0.0.2,,,,5
+subnet-up netname,foo,dummy,,bar,127.0.0.1,$port_bar,fec0::/64,5,,,5
 bar-started-2
-host-down netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-hosts/bar-down netname,foo,dummy,,bar,127.0.0.1,32760,,,,,5
-subnet-down netname,foo,dummy,,bar,127.0.0.1,32760,10.0.0.2,,,,5
-subnet-down netname,foo,dummy,,bar,127.0.0.1,32760,fec0::/64,5,,,5
+host-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+hosts/bar-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,,,,,5
+subnet-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,10.0.0.2,,,,5
+subnet-down netname,foo,dummy,,bar,127.0.0.1,$port_bar,fec0::/64,5,,,5
 subnet-down netname,foo,dummy,,foo,,,10.0.0.1,,,,5
 subnet-down netname,foo,dummy,,foo,,,fec0::/64,,,,5
 tinc-down netname,foo,dummy,,,,,,,,,5

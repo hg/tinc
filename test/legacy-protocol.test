@@ -8,7 +8,7 @@ echo [STEP] Initialize two nodes
 tinc foo <<EOF
 init foo
 set DeviceType dummy
-set Port 32753
+set Port 30060
 set Address localhost
 add Subnet 10.98.98.1
 set PingTimeout 1

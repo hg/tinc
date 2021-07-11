@@ -7,7 +7,8 @@ TESTS = \
 	invite-offline.test \
 	invite-tinc-up.test \
 	variables.test \
-	scripts.test
+	scripts.test \
+	security.test
 
 if WITH_LEGACY_PROTOCOL
 TESTS += legacy-protocol.test
@@ -15,10 +16,6 @@ TESTS += legacy-protocol.test
 if !MINGW
 TESTS += algorithms.test
 endif
-endif
-
-if !BSD
-TESTS += security.test
 endif
 
 if !MINGW

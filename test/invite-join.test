@@ -11,7 +11,7 @@ set DeviceType dummy
 set Mode switch
 set Broadcast no
 set Address localhost
-set Port 32751
+set Port 30010
 EOF
 
 start_tinc foo

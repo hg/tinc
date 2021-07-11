@@ -8,40 +8,44 @@ echo "[STEP] Skip this test if we aren\'t root or if \"ip netns\" does not exist
 test "$(id -u)" = "0" || exit $EXIT_SKIP_TEST
 ip netns list || exit $EXIT_SKIP_TEST
 
+ip_foo=192.168.1.1
+ip_bar=192.168.1.2
+mask=24
+
 echo [STEP] Initialize two nodes
 
 tinc foo <<EOF
 init foo
-set Subnet 192.168.1.1
+set Subnet $ip_foo
 set Interface ping.test1
-set Port 32577
+set Port 30090
 set Address localhost
 set AutoConnect no
 EOF
 
 # shellcheck disable=SC2016
-create_script foo tinc-up '
+create_script foo tinc-up "
   ip netns add ping.test1
-  ip link set dev $INTERFACE netns ping.test1
-  ip netns exec ping.test1 ip addr add 192.168.1.1/24 dev $INTERFACE
-  ip netns exec ping.test1 ip link set $INTERFACE up
-'
+  ip link set dev \$INTERFACE netns ping.test1
+  ip netns exec ping.test1 ip addr add $ip_foo/$mask dev \$INTERFACE
+  ip netns exec ping.test1 ip link set \$INTERFACE up
+"
 
 tinc bar <<EOF
 init bar
-set Subnet 192.168.1.2
+set Subnet $ip_bar
 set Interface ping.test2
-set Port 32574
+set Port 30091
 set AutoConnect no
 EOF
 
 # shellcheck disable=SC2016
-create_script bar tinc-up '
+create_script bar tinc-up "
   ip netns add ping.test2
-  ip link set dev $INTERFACE netns ping.test2
-  ip netns exec ping.test2 ip addr add 192.168.1.2/24 dev $INTERFACE
-  ip netns exec ping.test2 ip link set $INTERFACE up
-'
+  ip link set dev \$INTERFACE netns ping.test2
+  ip netns exec ping.test2 ip addr add $ip_bar/$mask dev \$INTERFACE
+  ip netns exec ping.test2 ip link set \$INTERFACE up
+"
 
 echo [STEP] Exchange configuration files
 
@@ -57,7 +61,7 @@ wait_script bar tinc-up
 
 echo [STEP] The nodes should not be able to ping each other if there is no connection
 
-must_fail ip netns exec ping.test1 ping -W1 -c3 192.168.1.2
+must_fail ip netns exec ping.test1 ping -W1 -c3 $ip_bar
 
 echo [STEP] After connecting they should be
 
@@ -66,7 +70,7 @@ create_script bar hosts/foo-up
 tinc bar add ConnectTo foo
 wait_script bar hosts/foo-up
 
-ip netns exec ping.test1 ping -W1 -c3 192.168.1.2
+ip netns exec ping.test1 ping -W1 -c3 $ip_bar
 
 echo [STEP] Clean up
 
