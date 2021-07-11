@@ -11,7 +11,7 @@ set DeviceType dummy
 set Port 30060
 set Address localhost
 add Subnet 10.98.98.1
-set PingTimeout 1
+set PingTimeout 2
 EOF
 
 tinc bar <<EOF
@@ -19,8 +19,8 @@ init bar
 set DeviceType dummy
 set Port 0
 add Subnet 10.98.98.2
-set PingTimeout 1
-set MaxTimeout 1
+set PingTimeout 2
+set MaxTimeout 2
 EOF
 
 echo [STEP] Exchange host config files
