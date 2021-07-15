@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # shellcheck source=testlib.sh
-. "${0%/*}/testlib.sh"
+. "$TESTLIB_PATH"
 
 echo "[STEP] Skip this test if we aren\'t root or if \"ip netns\" does not exist"
 

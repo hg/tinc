@@ -1,0 +1,37 @@
+dep_gcrypt = dependency('libgcrypt')
+
+tinc_dep += dep_gcrypt
+tincd_dep += dep_gcrypt
+sptps_test_dep += dep_gcrypt
+sptps_speed_dep += dep_gcrypt
+
+sptps_keypair_dep += dependency('openssl', required: false)
+
+common = files(
+  'cipher.c',
+  'crypto.c',
+  'digest.c',
+  'prf.c',
+)
+
+tinc_src += [
+  common,
+  files('rsa.c', 'rsagen.c')
+]
+
+tincd_src += [
+  common,
+  files('rsa.c')
+]
+
+sptps_test_src += common
+
+sptps_speed_src += [
+  'openssl/crypto.c',
+  'openssl/digest.c',
+  'openssl/prf.c',
+]
+
+sptps_keypair_src += [
+  'openssl/crypto.c',
+]

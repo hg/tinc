@@ -34,7 +34,7 @@
 #endif
 
 #ifdef HAVE_LZO
-#include LZO1X_H
+#include <lzo1x.h>
 #endif
 
 #ifndef HAVE_MINGW

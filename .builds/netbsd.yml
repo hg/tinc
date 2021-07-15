@@ -1,32 +1,30 @@
 image: netbsd/9.x
 
 packages:
-  - gmake
-  - automake
-  - autoconf
+  - meson
+  - pkgconf
   - openssl
   - lzo
+  - ncurses
   - miniupnpc
-  - readline
   - gtexinfo
 
-environment:
-  CFLAGS: -I/usr/pkg/include -L/usr/pkg/lib
-
 sources:
-  - https://github.com/gsliepen/tinc
+  - https://github.com/hg/tinc#meson
+
+env:
+  C_INCLUDE_PATH: /usr/pkg/include
+  LIBRARY_PATH: /usr/pkg/lib
 
 tasks:
   - configure: |
       cd tinc
-      autoreconf -fsi
-      ./configure --with-miniupnpc
+      meson setup build -Dminiupnpc=auto
 
   - build: |
-      cd tinc
-      gmake -j$(sysctl -n hw.ncpu)
+      cd tinc/build
+      ninja all
 
   - test: |
-      cd tinc
-      export LD_LIBRARY_PATH=/usr/pkg/lib
-      gmake check-recursive VERBOSE=1
+      cd tinc/build
+      meson test

@@ -16,12 +16,6 @@ realdir() {
   fi
 }
 
-tincd_path=$(realdir "../src/tincd@EXEEXT@")
-tinc_path=$(realdir "../src/tinc@EXEEXT@")
-
-SPTPS_TEST=$(realdir "../src/sptps_test@EXEEXT@")
-SPTPS_KEYPAIR=$(realdir "../src/sptps_keypair@EXEEXT@")
-
 # Exit status list
 EXIT_SKIP_TEST=77
 EXIT_TIMEOUT=124
@@ -212,7 +206,7 @@ EOF
 #!/bin/sh
 (
   cd "$PWD" || exit 1
-  SCRIPTNAME="$SCRIPTNAME" . ./testlib.sh
+  SCRIPTNAME="$SCRIPTNAME" . "$TESTLIB_PATH"
   $@
   echo "$script,\$$,$TINC_SCRIPT_VARS" >>"$script_log"
 ) >/dev/null 2>&1 || kill -TERM $$

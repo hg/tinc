@@ -28,7 +28,7 @@
 #endif
 
 #ifdef HAVE_LZO
-#include LZO1X_H
+#include <lzo1x.h>
 #endif
 
 #include "address_cache.h"

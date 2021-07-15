@@ -1,8 +1,8 @@
 image: freebsd/13.x
 
 packages:
-  - gmake
-  - autotools
+  - meson
+  - pkgconf
   - openssl
   - lzo2
   - ncurses
@@ -10,22 +10,22 @@ packages:
   - readline
   - texinfo
 
-environment:
-  CFLAGS: -I/usr/local/include -L/usr/local/lib
-
 sources:
-  - https://github.com/gsliepen/tinc
+  - https://github.com/hg/tinc#meson
+
+env:
+  C_INCLUDE_PATH: /usr/local/include
+  LIBRARY_PATH: /usr/local/lib
 
 tasks:
   - configure: |
       cd tinc
-      autoreconf -fsi
-      ./configure --with-miniupnpc
+      meson setup build
 
   - build: |
-      cd tinc
-      gmake -j$(sysctl -n hw.ncpu)
+      cd tinc/build
+      ninja all
 
   - test: |
-      cd tinc
-      gmake check-recursive VERBOSE=1
+      cd tinc/build
+      meson test
