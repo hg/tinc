@@ -14,7 +14,6 @@ AC_USE_SYSTEM_EXTENSIONS
 
 dnl Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -238,6 +237,13 @@ AC_ARG_ENABLE(jumbograms,
       [ AC_DEFINE(ENABLE_JUMBOGRAMS, 1, [Support for jumbograms (packets up to 9000 bytes)]) ])
   ]
 )
+
+dnl Make sure that C11 standard is supported
+AX_CHECK_COMPILE_FLAG([-std=c11], [
+  CFLAGS="$CFLAGS -std=c11"
+], [
+  AC_MSG_ERROR("The C11 standard is not supported by your C compiler.")
+])
 
 dnl Compiler hardening flags
 dnl No -fstack-protector-all because it doesn't work on all platforms or architectures.
