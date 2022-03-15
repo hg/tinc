@@ -2,49 +2,79 @@
 
 . ./testlib.sh
 
-echo [STEP] Initialize one node
+run_test() {
+  cleanup
+  rm -rf "$DIR_FOO" "$DIR_BAR"
 
-tinc foo <<EOF
+  echo [STEP] Initialize one node
+
+  tinc foo <<EOF
 init foo
 set DeviceType dummy
 set Mode switch
 set Broadcast no
-set Address localhost
-set Port 30010
+$@
 EOF
 
-start_tinc foo
+# set Address localhost
+  start_tinc foo
 
-echo [STEP] Generate an invitation and let another node join the VPN
+  echo [STEP] Generate an invitation and let another node join the VPN
 
-invitation=$(tinc foo invite bar)
-tinc bar join "$invitation"
+  invitation=$(tinc foo invite bar)
+  tinc bar join "$invitation"
 
-echo [STEP] Test equivalence of host config files
+  echo [STEP] Test equivalence of host config files
 
-diff -w "$DIR_FOO/hosts/foo" "$DIR_BAR/hosts/foo"
-test "$(grep ^Ed25519PublicKey "$DIR_FOO/hosts/bar")" = "$(grep ^Ed25519PublicKey "$DIR_BAR/hosts/bar")"
+  diff -w "$DIR_FOO/hosts/foo" "$DIR_BAR/hosts/foo"
+  test "$(grep ^Ed25519PublicKey "$DIR_FOO/hosts/bar")" = "$(grep ^Ed25519PublicKey "$DIR_BAR/hosts/bar")"
 
-echo [STEP] Test Mode, Broadcast and ConnectTo statements
+  echo [STEP] Test Mode, Broadcast and ConnectTo statements
 
-test "$(tinc bar get Mode)" = switch
-test "$(tinc bar get Broadcast)" = no
-test "$(tinc bar get ConnectTo)" = foo
+  test "$(tinc bar get Mode)" = switch
+  test "$(tinc bar get Broadcast)" = no
+  test "$(tinc bar get ConnectTo)" = foo
 
-echo [STEP] Check whether the new node can join the VPN
+  echo [STEP] Check whether the new node can join the VPN
 
-tinc bar <<EOF
+  tinc bar <<EOF
 set DeviceType dummy
 set Port 0
 EOF
 
-create_script foo hosts/bar-up
-create_script bar hosts/foo-up
+  create_script foo hosts/bar-up
+  create_script bar hosts/foo-up
 
-start_tinc bar
+  start_tinc bar
 
-wait_script foo hosts/bar-up
-wait_script bar hosts/foo-up
+  wait_script foo hosts/bar-up
+  wait_script bar hosts/foo-up
 
-require_nodes foo 2
-require_nodes bar 2
+  require_nodes foo 2
+  require_nodes bar 2
+}
+
+run_test '
+set Port 30010
+set Address localhost
+'
+
+run_test '
+set Port 30011
+set BindToAddress localhost
+'
+
+run_test '
+set Port 30012
+set ListenAddress localhost 30012
+'
+run_test '
+set Port 30013
+set BindToAddress localhost 30013
+'
+
+run_test '
+set Port 30014
+set Address localhost
+set BindToAddress * 30014
+'

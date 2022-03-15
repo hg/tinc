@@ -78,7 +78,15 @@ static void scan_for_hostname(const char *filename, char **hostname, char **port
 		p += strspn(p, "\t ");
 		p[strcspn(p, "\t ")] = 0;
 
-		if(!*port && !strcasecmp(line, "Port")) {
+		if(!strcasecmp(line, "BindToAddress") || !strcasecmp(line, "ListenAddress")) {
+			if(!*hostname && *q && strcmp(q, "*")) {
+				*hostname = xstrdup(q);
+			}
+
+			if(!*port && *p) {
+				*port = xstrdup(p);
+			}
+		} else if(!*port && !strcasecmp(line, "Port")) {
 			*port = xstrdup(q);
 		} else if(!*hostname && !strcasecmp(line, "Address")) {
 			*hostname = xstrdup(q);
@@ -107,8 +115,8 @@ static char *get_my_hostname(void) {
 	// Use first Address statement in own host config file
 	if(check_id(name)) {
 		snprintf(filename, sizeof(filename), "%s" SLASH "hosts" SLASH "%s", confbase, name);
-		scan_for_hostname(filename, &hostname, &port);
 		scan_for_hostname(tinc_conf, &hostname, &port);
+		scan_for_hostname(filename, &hostname, &port);
 	}
 
 	free(name);
