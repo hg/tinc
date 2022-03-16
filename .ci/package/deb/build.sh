@@ -19,7 +19,7 @@ apt-get install -y devscripts git-buildpackage dh-make
 
 export USER=${USER:-$(whoami)}
 
-os="$ID-$VERSION_ID"
+os="$ID-${VERSION_ID:-unknown}"
 templates=$(dirname "$0")/debian
 
 git clean -dfx
