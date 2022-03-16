@@ -1,19 +1,21 @@
-# https://man.sr.ht/builds.sr.ht/compatibility.md#netbsd
-image: netbsd/9.x
+# https://man.sr.ht/builds.sr.ht/compatibility.md#openbsd
+image: openbsd/7.0
 
 packages:
   - gmake
-  - automake
-  - autoconf
-  - openssl
-  - lzo
+  - automake-1.16.3
+  - autoconf-2.71
+  - openssl-3.0.0
+  - lzo2
   - lz4
   - miniupnpc
   - readline
-  - gtexinfo
+  - texinfo
 
 environment:
-  CFLAGS: -I/usr/pkg/include -L/usr/pkg/lib
+  AUTOCONF_VERSION: 2.71
+  AUTOMAKE_VERSION: 1.16
+  CFLAGS: -I/usr/local/include -L/usr/local/lib
 
 sources:
   - https://github.com/gsliepen/tinc
@@ -30,5 +32,4 @@ tasks:
 
   - test: |
       cd tinc
-      export LD_LIBRARY_PATH=/usr/pkg/lib
       gmake check-recursive VERBOSE=1

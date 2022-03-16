@@ -1,3 +1,4 @@
+# https://man.sr.ht/builds.sr.ht/compatibility.md#openbsd
 image: openbsd/6.9
 
 packages:
