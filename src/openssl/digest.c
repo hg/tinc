@@ -22,9 +22,14 @@
 #include <openssl/err.h>
 #include <openssl/hmac.h>
 
+#if OPENSSL_VERSION_MAJOR >= 3
+#include <openssl/core_names.h>
+#endif
+
 #include "digest.h"
 #include "../digest.h"
 #include "../logger.h"
+#include "log.h"
 
 static void digest_open(digest_t *digest, const EVP_MD *evp_md, size_t maclength) {
 	digest->digest = evp_md;
@@ -63,13 +68,45 @@ bool digest_open_by_nid(digest_t *digest, int nid, size_t maclength) {
 }
 
 bool digest_set_key(digest_t *digest, const void *key, size_t len) {
+#if OPENSSL_VERSION_MAJOR < 3
 	digest->hmac_ctx = HMAC_CTX_new();
-	HMAC_Init_ex(digest->hmac_ctx, key, (int)len, digest->digest, NULL);
 
 	if(!digest->hmac_ctx) {
 		abort();
 	}
 
+	HMAC_Init_ex(digest->hmac_ctx, key, (int)len, digest->digest, NULL);
+#else
+	EVP_MAC *mac = EVP_MAC_fetch(NULL, OSSL_MAC_NAME_HMAC, NULL);
+
+	if(!mac) {
+		ssl_err("fetch MAC");
+		return false;
+	}
+
+	digest->hmac_ctx = EVP_MAC_CTX_new(mac);
+	EVP_MAC_free(mac);
+
+	if(!digest->hmac_ctx) {
+		ssl_err("create MAC context");
+		return false;
+	}
+
+	digest->hmac_algo = EVP_MD_get0_name(digest->digest);
+
+	if(!digest->hmac_algo) {
+		ssl_err("get HMAC algorithm name");
+		return false;
+	}
+
+	// When using the 'new' EVP API, we cannot save the key once and then reinitialize the context like
+	// we could previously when using HMAC_Init_ex(). So we have to store the key and then reinit it
+	// manually every time digest_create() is called.
+	digest->hmac_key_len = len;
+	digest->hmac_key = malloc(len);
+	memcpy(digest->hmac_key, key, len);
+
+#endif
 	return true;
 }
 
@@ -83,8 +120,20 @@ void digest_close(digest_t *digest) {
 	}
 
 	if(digest->hmac_ctx) {
+#if OPENSSL_VERSION_MAJOR < 3
 		HMAC_CTX_free(digest->hmac_ctx);
+#else
+		EVP_MAC_CTX_free(digest->hmac_ctx);
+#endif
 	}
+
+#if OPENSSL_VERSION_MAJOR >= 3
+
+	if(digest->hmac_key) {
+		free(digest->hmac_key);
+	}
+
+#endif
 
 	memset(digest, 0, sizeof(*digest));
 }
@@ -94,10 +143,27 @@ bool digest_create(digest_t *digest, const void *indata, size_t inlen, void *out
 	unsigned char tmpdata[len];
 
 	if(digest->hmac_ctx) {
-		if(!HMAC_Init_ex(digest->hmac_ctx, NULL, 0, NULL, NULL)
-		                || !HMAC_Update(digest->hmac_ctx, indata, inlen)
-		                || !HMAC_Final(digest->hmac_ctx, tmpdata, NULL)) {
-			logger(DEBUG_ALWAYS, LOG_DEBUG, "Error creating digest: %s", ERR_error_string(ERR_get_error(), NULL));
+		bool ok;
+
+#if OPENSSL_VERSION_MAJOR < 3
+		ok = HMAC_Init_ex(digest->hmac_ctx, NULL, 0, NULL, NULL)
+		     && HMAC_Update(digest->hmac_ctx, indata, inlen)
+		     && HMAC_Final(digest->hmac_ctx, tmpdata, NULL);
+#else
+		// The cast is okay, the parameter is not going to change. For example, see:
+		// https://github.com/openssl/openssl/blob/31b7f23d2f958491d46c8a8e61c2b77b1b546f3e/crypto/ec/ecdh_kdf.c#L37-L38
+		const OSSL_PARAM params[] = {
+			OSSL_PARAM_utf8_string(OSSL_STORE_PARAM_DIGEST, (char *)digest->hmac_algo, 0),
+			OSSL_PARAM_END,
+		};
+
+		ok = EVP_MAC_init(digest->hmac_ctx, digest->hmac_key, digest->hmac_key_len, params)
+		     && EVP_MAC_update(digest->hmac_ctx, indata, inlen)
+		     && EVP_MAC_final(digest->hmac_ctx, tmpdata, NULL, sizeof(tmpdata));
+#endif
+
+		if(!ok) {
+			ssl_err("create HMAC");
 			return false;
 		}
 	} else {
@@ -112,7 +178,7 @@ bool digest_create(digest_t *digest, const void *indata, size_t inlen, void *out
 		if(!EVP_DigestInit(digest->md_ctx, digest->digest)
 		                || !EVP_DigestUpdate(digest->md_ctx, indata, inlen)
 		                || !EVP_DigestFinal(digest->md_ctx, tmpdata, NULL)) {
-			logger(DEBUG_ALWAYS, LOG_DEBUG, "Error creating digest: %s", ERR_error_string(ERR_get_error(), NULL));
+			ssl_err("create digest");
 			return false;
 		}
 	}
