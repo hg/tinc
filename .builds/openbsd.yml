@@ -1,9 +1,8 @@
 image: openbsd/6.9
 
 packages:
-  - gmake
-  - automake-1.16.3
-  - autoconf-2.71
+  - meson
+  - pkgconf
   - openssl-1.1.1k
   - lzo2
   - lz4
@@ -12,9 +11,8 @@ packages:
   - texinfo
 
 environment:
-  AUTOCONF_VERSION: 2.71
-  AUTOMAKE_VERSION: 1.16
-  CFLAGS: -I/usr/local/include -L/usr/local/lib
+  C_INCLUDE_PATH: /usr/local/include
+  LIBRARY_PATH: /usr/local/lib
 
 sources:
   - https://github.com/gsliepen/tinc
@@ -22,13 +20,12 @@ sources:
 tasks:
   - configure: |
       cd tinc
-      autoreconf -fsi
-      ./configure --with-miniupnpc
+      meson setup build -Dminiupnpc=auto
 
   - build: |
       cd tinc
-      gmake -j$(sysctl -n hw.ncpu)
+      ninja -C build
 
   - test: |
       cd tinc
-      gmake check-recursive VERBOSE=1
+      meson test -C build --verbose
