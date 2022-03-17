@@ -92,19 +92,25 @@ bool digest_set_key(digest_t *digest, const void *key, size_t len) {
 		return false;
 	}
 
-	digest->hmac_algo = EVP_MD_get0_name(digest->digest);
+	const char *hmac_algo = EVP_MD_get0_name(digest->digest);
 
-	if(!digest->hmac_algo) {
+	if(!hmac_algo) {
 		ssl_err("get HMAC algorithm name");
 		return false;
 	}
 
-	// When using the 'new' EVP API, we cannot save the key once and then reinitialize the context like
-	// we could previously when using HMAC_Init_ex(). So we have to store the key and then reinit it
-	// manually every time digest_create() is called.
-	digest->hmac_key_len = len;
-	digest->hmac_key = malloc(len);
-	memcpy(digest->hmac_key, key, len);
+	// The casts are okay, the parameters are not going to change. For example, see:
+	// https://github.com/openssl/openssl/blob/31b7f23d2f958491d46c8a8e61c2b77b1b546f3e/crypto/ec/ecdh_kdf.c#L37-L38
+	const OSSL_PARAM params[] = {
+		OSSL_PARAM_octet_string(OSSL_MAC_PARAM_KEY, (void *)key, len),
+		OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, (char *)hmac_algo, 0),
+		OSSL_PARAM_END,
+	};
+
+	if(!EVP_MAC_CTX_set_params(digest->hmac_ctx, params)) {
+		ssl_err("set MAC context params");
+		return false;
+	}
 
 #endif
 	return true;
@@ -127,14 +133,6 @@ void digest_close(digest_t *digest) {
 #endif
 	}
 
-#if OPENSSL_VERSION_MAJOR >= 3
-
-	if(digest->hmac_key) {
-		free(digest->hmac_key);
-	}
-
-#endif
-
 	memset(digest, 0, sizeof(*digest));
 }
 
@@ -150,14 +148,7 @@ bool digest_create(digest_t *digest, const void *indata, size_t inlen, void *out
 		     && HMAC_Update(digest->hmac_ctx, indata, inlen)
 		     && HMAC_Final(digest->hmac_ctx, tmpdata, NULL);
 #else
-		// The cast is okay, the parameter is not going to change. For example, see:
-		// https://github.com/openssl/openssl/blob/31b7f23d2f958491d46c8a8e61c2b77b1b546f3e/crypto/ec/ecdh_kdf.c#L37-L38
-		const OSSL_PARAM params[] = {
-			OSSL_PARAM_utf8_string(OSSL_STORE_PARAM_DIGEST, (char *)digest->hmac_algo, 0),
-			OSSL_PARAM_END,
-		};
-
-		ok = EVP_MAC_init(digest->hmac_ctx, digest->hmac_key, digest->hmac_key_len, params)
+		ok = EVP_MAC_init(digest->hmac_ctx, NULL, 0, NULL)
 		     && EVP_MAC_update(digest->hmac_ctx, indata, inlen)
 		     && EVP_MAC_final(digest->hmac_ctx, tmpdata, NULL, sizeof(tmpdata));
 #endif

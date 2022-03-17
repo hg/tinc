@@ -29,9 +29,6 @@ struct digest {
 	HMAC_CTX *hmac_ctx;
 #else
 	EVP_MAC_CTX *hmac_ctx;
-	void *hmac_key;
-	size_t hmac_key_len;
-	const char *hmac_algo;
 #endif
 	EVP_MD_CTX *md_ctx;
 	size_t maclength;
