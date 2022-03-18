@@ -76,17 +76,12 @@ jobs:
       - name: Install deps
         run: sudo sh .ci/deps.sh
 
-      - name: Configure and compile
-        run: |
-          autoreconf -fsi
-          ./configure $(sh .ci/conf.sh)
-
       - name: Run clang-tidy
         run: sh .ci/tidy/run.sh
         if: always()
 
       - name: Check code formatting
-        run: "! astyle -r --options=.astylerc --dry-run --formatted '*.c' '*.h' | grep '^Formatted'"
+        run: "! astyle --exclude=build -r --options=.astylerc --dry-run --formatted '*.c' '*.h' | grep '^Formatted'"
         if: always()
 
       - name: Check scripts formatting
@@ -287,6 +282,8 @@ jobs:
             base-devel
             autoconf-wrapper
             automake-wrapper
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-openssl
             mingw-w64-x86_64-libgcrypt

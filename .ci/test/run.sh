@@ -31,49 +31,18 @@ run_tests() {
 
   header "Running test flavor $flavor"
 
-  autoreconf -fsi
-
-  DISTCHECK_CONFIGURE_FLAGS=$(sh .ci/conf.sh "$@")
-  export DISTCHECK_CONFIGURE_FLAGS
-
-  # shellcheck disable=SC2086
-  ./configure $DISTCHECK_CONFIGURE_FLAGS
-
-  make -j"$(nproc)" all extra
-
-  if [ "$(uname -s)" = Linux ]; then
-    cmd=distcheck
-  else
-    cmd=check
-  fi
+  ./.ci/build.sh "$@"
 
   code=0
-  make $cmd -j2 VERBOSE=1 || code=$?
+  meson test -C build --verbose || code=$?
 
-  sudo tar -c -z -f "/tmp/logs/tests.$flavor.tar.gz" test/ sanitizer/
+  sudo tar -c -z -f "/tmp/logs/tests.$flavor.tar.gz" build/ sanitizer/
 
   return $code
 }
 
 case "$(uname -s)" in
-Linux)
-  if [ -n "${HOST:-}" ]; then
-    # Needed for cross-compilation for 32-bit targets.
-    export CPPFLAGS="${CPPFLAGS:-} -D_FILE_OFFSET_BITS=64"
-  fi
-  ;;
-
-MINGW*)
-  # No-op.
-  sudo() { "$@"; }
-  ;;
-
-Darwin)
-  nproc() { sysctl -n hw.ncpu; }
-  gcrypt=$(brew --prefix libgcrypt)
-  openssl=$(brew --prefix openssl)
-  export CPPFLAGS="${CPPFLAGS:-} -I/usr/local/include -I$gcrypt/include -I$openssl/include -I$gcrypt/include"
-  ;;
+MINGW* | Darwin) sudo() { "$@"; } ;;
 esac
 
 case "$1" in
@@ -81,10 +50,10 @@ default)
   run_tests default
   ;;
 nolegacy)
-  run_tests nolegacy --disable-legacy-protocol
+  run_tests nolegacy -Dcrypto=nolegacy
   ;;
 gcrypt)
-  run_tests gcrypt --with-libgcrypt
+  run_tests gcrypt -Dcrypto=gcrypt
   ;;
 *)
   bail "unknown test flavor $1"
