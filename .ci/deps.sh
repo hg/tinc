@@ -6,25 +6,28 @@ deps_linux_alpine() {
   apk upgrade
 
   apk add \
-    git binutils make autoconf automake gcc linux-headers diffutils \
-    procps socat shadow sudo libgcrypt-dev texinfo texlive gzip \
+    git binutils meson pkgconf gcc linux-headers diffutils \
+    procps socat shadow sudo libgcrypt-dev texinfo gzip \
     openssl-dev zlib-dev lzo-dev ncurses-dev readline-dev musl-dev lz4-dev vde2-dev
 }
 
-deps_linux_debian() {
-  export DEBIAN_FRONTEND=noninteractive
+deps_linux_debian_mingw() {
+  apt-get install -y \
+    mingw-w64 mingw-w64-tools \
+    wine wine-binfmt \
+    libgcrypt-mingw-w64-dev \
+    "$@"
+}
 
-  HOST=${HOST:-}
-
+deps_linux_debian_linux() {
   if [ -n "$HOST" ]; then
     dpkg --add-architecture "$HOST"
   fi
 
   apt-get update
-  apt-get upgrade -y
 
   apt-get install -y \
-    git binutils make autoconf automake gcc diffutils sudo texinfo texlive netcat-openbsd procps socat \
+    binutils make gcc \
     zlib1g-dev:"$HOST" \
     libssl-dev:"$HOST" \
     liblzo2-dev:"$HOST" \
@@ -38,7 +41,29 @@ deps_linux_debian() {
 
   if [ -n "$HOST" ]; then
     apt-get install -y crossbuild-essential-"$HOST" qemu-user
+  else
+    linux_openssl3
   fi
+}
+
+deps_linux_debian() {
+  . /etc/os-release
+
+  export DEBIAN_FRONTEND=noninteractive
+
+  apt-get update
+  apt-get upgrade -y
+  apt-get install -y git pkgconf diffutils sudo texinfo \
+    netcat-openbsd procps socat python3 python3-pip ninja-build
+
+  HOST=${HOST:-}
+  if [ "$HOST" = mingw ]; then
+    deps_linux_debian_mingw "$@"
+  else
+    deps_linux_debian_linux "$@"
+  fi
+
+  pip3 install meson
 }
 
 deps_linux_rhel() {
@@ -54,7 +79,7 @@ deps_linux_rhel() {
   yum upgrade -y
 
   yum install -y \
-    git binutils make autoconf automake gcc diffutils sudo texinfo-tex netcat procps systemd perl-IPC-Cmd \
+    git binutils make meson pkgconf gcc diffutils sudo texinfo-tex netcat procps systemd perl-IPC-Cmd \
     findutils socat lzo-devel zlib-devel lz4-devel ncurses-devel readline-devel libgcrypt-devel "$@"
 
   if yum info openssl11-devel; then
@@ -69,11 +94,6 @@ deps_linux_rhel() {
 }
 
 linux_openssl3() {
-  if [ -n "${HOST:-}" ]; then
-    echo >&2 "Not installing OpenSSL 3 to a cross-compilation job"
-    return
-  fi
-
   src=/usr/local/src/openssl
   ssl3=/opt/ssl3
 
@@ -101,7 +121,6 @@ deps_linux() {
 
   debian | ubuntu)
     deps_linux_debian "$@"
-    linux_openssl3
     ;;
 
   centos | almalinux | fedora)
@@ -114,7 +133,7 @@ deps_linux() {
 }
 
 deps_macos() {
-  brew install coreutils netcat automake lzo lz4 miniupnpc libgcrypt openssl "$@"
+  brew install coreutils netcat lzo lz4 miniupnpc libgcrypt openssl meson "$@"
   pip3 install --user compiledb
 }
 
