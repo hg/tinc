@@ -1,0 +1,71 @@
+option('runstatedir',
+       type: 'string',
+       value: '',
+       description: 'state directory for sockets, PID files')
+
+option('crypto',
+       type: 'combo',
+       choices: ['openssl', 'gcrypt', 'nolegacy'],
+       value: 'openssl',
+       description: 'which cryptographic library to use')
+
+option('systemd',
+       type: 'feature',
+       value: 'auto',
+       description: 'install systemd service files')
+
+option('systemd-dir',
+       type: 'string',
+       value: '',
+       description: 'systemd service directory (defaults to _prefix_/lib/systemd/system)')
+
+option('miniupnpc',
+       type: 'feature',
+       value: 'disabled',
+       description: 'miniupnpc support')
+
+option('lzo',
+       type: 'feature',
+       value: 'auto',
+       description: 'lzo compression support')
+
+option('lz4',
+       type: 'feature',
+       value: 'auto',
+       description: 'lz4 compression support')
+
+option('curses',
+       type: 'feature',
+       value: 'auto',
+       description: 'curses support')
+
+option('readline',
+       type: 'feature',
+       value: 'auto',
+       description: 'readline support')
+
+option('zlib',
+       type: 'feature',
+       value: 'auto',
+       description: 'zlib compression support')
+
+option('uml',
+       type: 'boolean',
+       value: false,
+       description: 'User Mode Linux support')
+
+option('tunemu',
+       type: 'feature',
+       value: 'auto',
+       description: 'support for the tunemu driver')
+
+option('vde',
+       type: 'feature',
+       value: 'auto',
+       description: 'support for Virtual Distributed Ethernet')
+
+option('jumbograms',
+       type: 'boolean',
+       value: false,
+       description: 'support for jumbograms (packets up to 9000 bytes)')
+

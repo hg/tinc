@@ -30,7 +30,7 @@
 #endif
 
 #ifdef HAVE_LZO
-#include LZO1X_H
+#include <lzo1x.h>
 #endif
 
 #ifdef LZ4_H
@@ -65,11 +65,15 @@ int keylifetime = 0;
 static char lzo_wrkmem[LZO1X_999_MEM_COMPRESS > LZO1X_1_MEM_COMPRESS ? LZO1X_999_MEM_COMPRESS : LZO1X_1_MEM_COMPRESS];
 #endif
 
+#ifdef HAVE_LZ4
+
 #ifdef HAVE_LZ4_BUILTIN
 static LZ4_stream_t lz4_stream;
 #else
 static void *lz4_state = NULL;
-#endif /* HAVE_LZ4_BUILTIN */
+#endif // HAVE_LZ4_BUILTIN
+
+#endif // HAVE_LZ4
 
 static void send_udppacket(node_t *, vpn_packet_t *);
 

@@ -48,7 +48,6 @@
 /test/*.log
 /test/*.trs
 /test/splice
-/test/testlib.sh
 Makefile
 Makefile.in
 core*
