@@ -280,8 +280,6 @@ jobs:
           # https://packages.msys2.org/package/
           install: >-
             base-devel
-            autoconf-wrapper
-            automake-wrapper
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-gcc

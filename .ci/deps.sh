@@ -89,7 +89,7 @@ deps_linux() {
 }
 
 deps_macos() {
-  brew install coreutils netcat automake lzo lz4 miniupnpc libgcrypt openssl meson "$@"
+  brew install coreutils netcat lzo lz4 miniupnpc libgcrypt openssl meson "$@"
   pip3 install --user compiledb
 }
 
