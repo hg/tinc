@@ -1,5 +1,6 @@
 project('tinc', 'c',
-  version: run_command('./src/git_tag.sh', '--abbrev=0').stdout().strip(),
+  version: run_command('./src/git_tag.sh', check: true).stdout().strip(),
+  license: 'GPL-2.0-only',
   meson_version: '>=0.49',
   default_options: [
     'c_std=c11',

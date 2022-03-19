@@ -391,18 +391,18 @@ tincd_exe = executable(
   install_dir: sbindir,
 )
 
-sptps_test_ld_flags = ld_flags
+#sptps_test_ld_flags = ld_flags
 
-if os_name == 'windows'
-  sptps_test_ld_flags += '-pthread'
-endif
+#if os_name == 'windows'
+#  sptps_test_ld_flags += '-pthread'
+#endif
 
 sptps_test_exe = executable(
   'sptps_test',
   sources: sptps_test_src,
   dependencies: sptps_test_dep,
   include_directories: conf_inc,
-  link_args: sptps_test_ld_flags,
+  link_args: ld_flags,
   build_by_default: false,
 )
 

@@ -1,4 +1,4 @@
-foreach lib : ['ws2_32', 'gdi32', 'crypt32', 'iphlpapi']
+foreach lib : ['ws2_32', 'gdi32', 'crypt32', 'iphlpapi', 'winpthread']
   tinc_dep += cc.find_library(lib)
 endforeach
 
