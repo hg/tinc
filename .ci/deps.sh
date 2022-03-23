@@ -63,7 +63,7 @@ deps_linux_debian() {
 
   . /etc/os-release
 
-  if [ "${ID:-}/${VERSION_CODENAME:-}" = debian/buster ]; then
+  if [ "${ID:-}/${VERSION_CODENAME:-}" = debian/buster ] || [ "$HOST" = mingw ]; then
     apt-get install -y python3 python3-pip ninja-build
     pip3 install meson
   else
@@ -111,7 +111,12 @@ linux_openssl3() {
   make -j"$(nproc)"
   make install_sw
 
-  ldconfig -v $ssl3/lib64
+  if [ -f /etc/ld.so.conf ]; then
+    echo $ssl3/lib64 >>/etc/ld.so.conf
+    ldconfig -v
+  else
+    ldconfig -v $ssl3/lib64
+  fi
 
   cd -
 }
