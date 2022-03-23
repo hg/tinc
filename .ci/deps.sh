@@ -47,14 +47,12 @@ deps_linux_debian_linux() {
 }
 
 deps_linux_debian() {
-  . /etc/os-release
-
   export DEBIAN_FRONTEND=noninteractive
 
   apt-get update
   apt-get upgrade -y
   apt-get install -y git pkgconf diffutils sudo texinfo \
-    netcat-openbsd procps socat python3 python3-pip ninja-build
+    netcat-openbsd procps socat
 
   HOST=${HOST:-}
   if [ "$HOST" = mingw ]; then
@@ -63,7 +61,14 @@ deps_linux_debian() {
     deps_linux_debian_linux "$@"
   fi
 
-  pip3 install meson
+  . /etc/os-release
+
+  if [ "${ID:-}/${VERSION_CODENAME:-}" = debian/buster ]; then
+    apt-get install -y python3 python3-pip ninja-build
+    pip3 install meson
+  else
+    apt-get install -y meson
+  fi
 }
 
 deps_linux_rhel() {
