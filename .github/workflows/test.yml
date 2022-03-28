@@ -356,10 +356,17 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
 
-      - name: Build and run (nolegacy)
+      - name: Build (nolegacy)
         run: .ci\windows\build.cmd nolegacy
 
-      - name: Build and run (OpenSSL)
-        run: |
-          .ci\windows\build.cmd openssl
-          openssl\src\tinc -c openssl\test-data -b generate-keys
+      - name: Test (nolegacy)
+        run: .ci\windows\test.cmd nolegacy
+        if: always()
+
+      - name: Build (OpenSSL)
+        run: .ci\windows\build.cmd openssl
+        if: always()
+
+      - name: Test (OpenSSL)
+        run: .ci\windows\test.cmd openssl
+        if: always()

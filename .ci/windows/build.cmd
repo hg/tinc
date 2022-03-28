@@ -1,13 +1,8 @@
 set crypto=%1
-set data=%crypto%\test-data
+set builddir=%crypto%
 
-meson setup %crypto% -Dbuildtype=release -Dcrypto=%crypto% || exit 1
-meson compile -C %crypto% || exit 1
+echo configure build directory
+meson setup %builddir% -Dbuildtype=release -Dcrypto=%crypto% || exit 1
 
-mkdir %data% || exit 1
-
-%crypto%\src\tinc --version || exit 1
-%crypto%\src\tinc -c %data% -b init foo || exit 1
-%crypto%\src\tinc -c %data% -b generate-ed25519-keys || exit 1
-
-%crypto%\src\tincd --version || exit 1
+echo build project
+meson compile -C %builddir% || exit 1
