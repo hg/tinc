@@ -73,7 +73,7 @@ class Tinc:
         out, err = proc.communicate(stdin, timeout=60)
         log.debug('tinc %s finished: code %d, stdout "%s", stderr "%s"', self.name, proc.returncode, out, err)
 
-        if code is not None:
+        if code is not None and len(args) > 0 and args[0] != 'stop':
             assert proc.returncode == code
 
         return out if out else '', err if err else ''

@@ -39,7 +39,7 @@ for code, flags in (
     foo.cmd('stop', code=code)
     stdout, stderr = cmd.communicate()
     log.debug('got code %d, stdout "%s", stderr "%s"', cmd.returncode, stdout, stderr)
-    assert cmd.returncode == code
+    assert bool(cmd.returncode) == bool(code)
 
 for code, flags in (
         (0, ['get', 'name']),

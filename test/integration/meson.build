@@ -18,9 +18,9 @@ if opt_crypto != 'nolegacy'
   ]
 endif
 
-if os_name != 'windows'
-  tests += 'sptps-basic.py'
-endif
+tests += 'sptps-basic.py'
+#if os_name != 'windows'
+#endif
 
 if os_name == 'linux'
   tests += [
@@ -44,7 +44,7 @@ env_vars = {
   'SPTPS_TEST_PATH': exe_sptps_test.full_path(),
   'SPTPS_KEYPAIR_PATH': exe_sptps_keypair.full_path(),
   'SPLICE_PATH': exe_splice.full_path(),
-  'PYTHON_PATH': python_path,
+  'PYTHON_PATH': 'C:/Users/z/AppData/Local/Programs/Python/Python310/python.exe', # python_path,
 }
 
 deps_test = [

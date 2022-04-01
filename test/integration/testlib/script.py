@@ -33,6 +33,9 @@ class TincScript:
         return data['env']
 
 
+cwd = cwd.replace('\\', '/')
+test_src_root = test_src_root.replace('\\', '/')
+
 def make_script(script: str, name: str, source: str) -> str:
     return f'''#!{python_path}
 

@@ -23,10 +23,12 @@
 #include <linux/if_tun.h>
 #endif
 
-#include <getopt.h>
+#include "getopt.h"
 
 #ifdef HAVE_WINDOWS
+#ifndef _MSC_VER
 #include <pthread.h>
+#endif
 #endif
 
 #include "crypto.h"
@@ -70,7 +72,7 @@ int addressfamily = AF_UNSPEC;
 
 static bool send_data(void *handle, uint8_t type, const void *data, size_t len) {
 	(void)type;
-	char hex[len * 2 + 1];
+	char *hex = alloca(len * 2 + 1);
 	bin2hex(data, hex, len);
 
 	if(verbose) {
@@ -275,8 +277,13 @@ static int start_input_reader(void) {
 		fprintf(stderr, "stdin thread is listening on :%d\n", ntohs(connect_sa.sin_port));
 	}
 
+#ifdef _MSC_VER
+    int err = 0;
+    CreateThread(NULL, 0, stdin_reader_thread, NULL, 0, 0);
+#else
 	pthread_t th;
 	int err = pthread_create(&th, NULL, stdin_reader_thread, NULL);
+#endif
 
 	if(err) {
 		fprintf(stderr, "Could not start reader thread: %s\n", strerror(err));
@@ -671,7 +678,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			if(verbose) {
-				char hex[len * 2 + 1];
+				char *hex = alloca(len * 2 + 1);
 				bin2hex(buf, hex, len);
 				fprintf(stderr, "Received %ld bytes of data:\n%s\n", (long)len, hex);
 			}

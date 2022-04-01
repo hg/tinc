@@ -26,4 +26,4 @@ cwd = os.getcwd()
 test_wd = os.path.join(cwd, 'wd', test_name)
 
 # Source root for the integration test suite
-test_src_root = pathlib.Path(__file__).parent.parent.resolve()
+test_src_root = str(pathlib.Path(__file__).parent.parent.resolve())
