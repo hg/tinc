@@ -1,32 +1,30 @@
 tests = [
-  'basic.test',
-  'commandline.test',
-  'executables.test',
-  'import-export.test',
-  'invite-join.test',
-  'invite-offline.test',
-  'invite-tinc-up.test',
-  'security.test',
-  'security-legacy.test',
-  'security-sptps.test',
-  'variables.test',
+  'basic.py',
+  'command-fsck.py',
+  'commandline.py',
+  'executables.py',
+  'import-export.py',
+  'invite.py',
+  'invite-tinc-up.py',
+  'scripts.py',
+  'security.py',
+  'splice.py',
+  'sptps-basic.py',
+  'variables.py',
 ]
 
 if opt_crypto != 'nolegacy'
-  tests += 'algorithms.test'
-  tests += 'legacy-protocol.test'
-endif
-
-if os_name != 'windows'
-  tests += 'sptps-basic.test'
+  tests += [
+    'algorithms.py',
+    'legacy-protocol.py',
+  ]
 endif
 
 if os_name == 'linux'
-  tests += 'ns-ping.test'
-endif
-
-if os_name != 'sunos'
-  tests += 'scripts.test'
+  tests += [
+    'ns-ping.py',
+    'compression.py',
+  ]
 endif
 
 exe_splice = executable(
@@ -38,13 +36,13 @@ exe_splice = executable(
   build_by_default: false,
 )
 
-env = environment()
-env.set('TINC_PATH', exe_tinc.full_path())
-env.set('TINCD_PATH', exe_tincd.full_path())
-env.set('SPTPS_TEST_PATH', exe_sptps_test.full_path())
-env.set('SPTPS_KEYPAIR_PATH', exe_sptps_keypair.full_path())
-env.set('SPLICE_PATH', exe_splice.full_path())
-env.set('TESTLIB_PATH', meson.current_source_dir() / 'testlib.sh')
+env_vars = {
+  'TINC_PATH': exe_tinc.full_path(),
+  'TINCD_PATH': exe_tincd.full_path(),
+  'SPTPS_TEST_PATH': exe_sptps_test.full_path(),
+  'SPTPS_KEYPAIR_PATH': exe_sptps_keypair.full_path(),
+  'SPLICE_PATH': exe_splice.full_path(),
+}
 
 deps_test = [
   exe_tinc,
@@ -57,11 +55,21 @@ deps_test = [
 test_wd = meson.current_build_dir()
 
 foreach test_name : tests
+  if meson_version.version_compare('>=0.52')
+    env = environment(env_vars)
+  else
+    env = environment()
+    foreach k, v : env_vars
+      env.set(k, v)
+    endforeach
+  endif
+  env.set('TEST_NAME', test_name)
+
   target = find_program(test_name, native: true)
   test(test_name,
        target,
        suite: 'integration',
-       timeout: 5 * 60,
+       timeout: 60,
        env: env,
        depends: deps_test,
        workdir: test_wd)
