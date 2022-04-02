@@ -683,6 +683,8 @@ static bool remove_service(void) {
 		fprintf(stderr, "%s service stopped\n", identname);
 	}
 
+	unlink(pidfilename);
+
 	if(!DeleteService(service)) {
 		fprintf(stderr, "Could not remove %s service: %s\n", identname, winerror(GetLastError()));
 		goto exit;
@@ -830,6 +832,7 @@ bool connect_tincd(bool verbose) {
 			fprintf(stderr, "Cannot connect to %s port %s: %s\n", host, port, sockstrerror(sockerrno));
 		}
 
+		unlink(pidfilename);
 		close(fd);
 		fd = -1;
 		return false;
