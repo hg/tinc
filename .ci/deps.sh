@@ -6,7 +6,7 @@ deps_linux_alpine() {
   apk upgrade
 
   apk add \
-    git binutils ccache meson pkgconf gcc linux-headers shadow sudo libgcrypt-dev texinfo gzip \
+    git binutils meson pkgconf gcc linux-headers shadow sudo libgcrypt-dev texinfo gzip \
     openssl-dev zlib-dev lzo-dev ncurses-dev readline-dev musl-dev lz4-dev vde2-dev cmocka-dev
 }
 
@@ -51,7 +51,7 @@ deps_linux_debian() {
 
   apt-get update
   apt-get upgrade -y
-  apt-get install -y git pkgconf sudo texinfo ccache
+  apt-get install -y git pkgconf sudo texinfo
 
   HOST=${HOST:-}
   if [ "$HOST" = mingw ]; then
@@ -86,7 +86,7 @@ deps_linux_rhel() {
   yum upgrade -y
 
   yum install -y \
-    git binutils make ccache meson pkgconf gcc sudo texinfo-tex systemd perl-IPC-Cmd \
+    git binutils make meson pkgconf gcc sudo texinfo-tex systemd perl-IPC-Cmd \
     lzo-devel zlib-devel lz4-devel ncurses-devel readline-devel libgcrypt-devel "$@"
 
   if yum info openssl11-devel; then
@@ -145,7 +145,7 @@ deps_linux() {
 }
 
 deps_macos() {
-  brew install ccache lzo lz4 miniupnpc libgcrypt openssl meson "$@"
+  brew install lzo lz4 miniupnpc libgcrypt openssl meson "$@"
   pip3 install --user compiledb
 }
 
