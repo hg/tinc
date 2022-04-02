@@ -287,6 +287,7 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-ccache
             mingw-w64-x86_64-openssl
             mingw-w64-x86_64-libgcrypt
             mingw-w64-x86_64-zlib

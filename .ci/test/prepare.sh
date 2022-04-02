@@ -7,7 +7,7 @@ if [ "$(id -u)" != 0 ] && sudo --preserve-env --non-interactive true; then
   exit 0
 fi
 
-useradd --user-group build
+useradd --create-home --user-group build
 
 echo 'build ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/build
 chmod 440 /etc/sudoers.d/build
