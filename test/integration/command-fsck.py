@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-from testlib import Tinc, log
+from testlib import Tinc, log, check
 
 node = Tinc()
 stdout, _ = node.cmd('--version')
@@ -33,8 +33,12 @@ class Context:
         args = ['fsck']
         if force:
             args.insert(0, '--force')
-        stdout, stderr = self.n.cmd(*args, code=code)
-        assert (msg in stderr or msg in stdout) == present
+
+        out, err = self.n.cmd(*args, code=code)
+        if present:
+            check.in_(msg, out, err)
+        else:
+            check.not_in(msg, out, err)
 
 
 def test(msg: str) -> Context:
@@ -44,8 +48,13 @@ def test(msg: str) -> Context:
     return ctx
 
 
+def read_text(path: str) -> str:
+    with open(path) as f:
+        return f.read()
+
+
 def read_lines(path: str) -> [str]:
-    return Path(path).read_text().splitlines()
+    return read_text(path).splitlines()
 
 
 def write_lines(path: str, lines: [str]) -> None:
@@ -184,14 +193,14 @@ replace_line(ctx.host, 'Ed25519PublicKey')
 ctx.expect_msg('No (usable) public Ed25519', code=0)
 with open(ctx.host, 'r') as f:
     host = f.read()
-assert 'ED25519 PUBLIC KEY' not in host
+check.not_in('ED25519 PUBLIC KEY', host)
 
 ctx = test('fix missing EC public key on --force')
 replace_line(ctx.host, 'Ed25519PublicKey')
 ctx.expect_msg('Wrote Ed25519 public key', force=True, code=0)
 with open(ctx.host, 'r') as f:
     host = f.read()
-assert 'ED25519 PUBLIC KEY' in host
+check.in_('ED25519 PUBLIC KEY', host)
 
 ctx = test('warn about obsolete variables')
 with open(ctx.host, 'a') as f:
@@ -344,12 +353,12 @@ ctx.expect_msg('public RSA key was found but no private key', code=0)
 ctx = test('warn about missing RSA public key')
 remove_pem(ctx.host)
 ctx.expect_msg('No (usable) public RSA', code=0)
-assert 'BEGIN RSA PUBLIC KEY' not in Path(ctx.host).read_text()
+check.not_in('BEGIN RSA PUBLIC KEY', read_text(ctx.host))
 
 ctx = test('fix missing RSA public key on --force')
 remove_pem(ctx.host)
 ctx.expect_msg('Wrote RSA public key', force=True, code=0)
-assert 'BEGIN RSA PUBLIC KEY' in Path(ctx.host).read_text()
+check.in_('BEGIN RSA PUBLIC KEY', read_text(ctx.host))
 
 ctx = test('RSA PublicKey + PrivateKey must work')
 os.remove(ctx.rsa_priv)

@@ -53,24 +53,24 @@ log.info('joining %s to %s with "%s"', bar.name, foo.name, invite)
 bar.cmd('--batch', 'join', invite)
 
 log.info('comparing host configs')
-check.files(foo.sub('hosts', foo.name), bar.sub('hosts', foo.name))
+check.files_eq(foo.sub('hosts', foo.name), bar.sub('hosts', foo.name))
 
 log.info('comparing public keys')
 prefix = 'Ed25519PublicKey'
 foo_key = util.find_line(foo.sub('hosts', bar.name), prefix)
 bar_key = util.find_line(bar.sub('hosts', bar.name), prefix)
-assert foo_key == bar_key
+check.equals(foo_key, bar_key)
 
 bar_tinc_up = bar.sub('tinc-up.invitation')
 log.info('testing %s', bar_tinc_up)
 
 content = pathlib.Path(bar_tinc_up).read_text()
 assert content
-assert ifconfig in content
-assert '1234::' not in content
+check.in_(ifconfig, content)
+check.not_in('1234::', content)
 
 for v6 in route_v6:
-    assert v6 in content
+    check.in_(v6, content)
 
 assert not os.path.exists(bar.sub('tinc-up'))
 

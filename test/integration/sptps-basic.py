@@ -2,9 +2,8 @@
 
 import os
 import subprocess as subp
-import random
 
-from testlib import log, path, util
+from testlib import log, path, util, check
 from testlib.util import random_string
 
 port = util.random_port()
@@ -47,7 +46,7 @@ def run_single_test(key0: Keypair, key1: Keypair, *flags: str) -> None:
     if server.returncode is None:
         server.kill()
 
-    assert received == data
+    check.equals(data, received)
 
 
 def run_keypair_tests(*flags: str) -> None:

@@ -2,7 +2,7 @@
 
 import asyncio
 
-from testlib import Script, Tinc, log, cmd
+from testlib import Script, Tinc, log, cmd, check
 
 foo, bar = Tinc(), Tinc()
 
@@ -87,7 +87,7 @@ id_baz = '0 baz 17.7'
 async def test_id_timeout():
     log.info('no ID sent by responding node if we do not send an ID first before the timeout')
     data = await send(id_bar, delay=tarpit_timeout * 2)
-    assert not data
+    check.false(data)
 
 
 async def test_tarpitted():
@@ -99,19 +99,19 @@ async def test_tarpitted():
 async def test_invalid_id_foo():
     log.info('no invalid IDs allowed')
     data = await send(id_foo)
-    assert not data
+    check.false(data)
 
 
 async def test_invalid_id_baz():
     log.info('no invalid IDs allowed')
     data = await send(id_baz)
-    assert not data
+    check.false(data)
 
 
 async def test_null_metakey():
     log.info('no NULL METAKEY allowed')
     data = await send(null_metakey)
-    assert not data
+    check.false(data)
 
 
 async def run_tests():

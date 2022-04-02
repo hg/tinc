@@ -62,8 +62,8 @@ foo.cmd('del', f'{bar.name}.Ed25519PublicKey')
 bar.cmd('del', f'{foo.name}.Ed25519PublicKey')
 
 (foo_key, bar_key) = run_test()
-assert not foo_key
-assert not bar_key
+check.false(foo_key)
+check.false(bar_key)
 
 log.info('foo 1.1, bar upgrades to 1.1')
 

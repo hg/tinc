@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from testlib import Tinc, log, cmd
+from testlib import Tinc, log, cmd, check
 
 
 def init(digest: str, cipher: str) -> (Tinc, Tinc):
@@ -48,7 +48,7 @@ for digest in ['none', 'sha256', 'sha512']:
         bar[foo.script_up].wait()
 
         stdout, _ = foo.cmd('info', bar.name)
-        assert 'reachable' in stdout
+        check.in_('reachable', stdout)
 
         bar.cmd('stop')
         foo.cmd('stop')

@@ -4,11 +4,11 @@ import os
 import typing as T
 import subprocess as subp
 
-from .util import random_port, random_string
-from .path import test_wd, tinc_path, tincd_path
+from . import check
 from .log import log
-
+from .path import test_wd, tinc_path, tincd_path
 from .script import TincScript, Script, make_script, make_cmd_wrap
+from .util import random_port, random_string
 
 
 def make_wd(name: str) -> str:
@@ -68,25 +68,25 @@ class Tinc:
         log.debug('tinc %s finished: code %d, stdout "%s", stderr "%s"', self.name, proc.returncode, out, err)
 
         if code is not None:
-            assert proc.returncode == code
+            check.equals(code, proc.returncode)
 
         return out if out else '', err if err else ''
 
     def tinc(self, *args: str):
         args = list(filter(bool, args))
         cmd = [tinc_path, *self._common_args, *args]
-        log.info('starting tinc %s: "%s"', self.name, ' '.join(cmd))
+        log.debug('starting tinc %s: "%s"', self.name, ' '.join(cmd))
         return subp.Popen(cmd, cwd=self.wd, stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE, encoding='utf-8')
 
     def tincd(self, *args: str) -> subp.Popen:
         args = list(filter(bool, args))
         cmd = [tincd_path, *self._common_args, '--logfile', self.sub('log'), '-d5', *args]
-        log.info('starting tincd %s: "%s"', self.name, ' '.join(cmd))
+        log.debug('starting tincd %s: "%s"', self.name, ' '.join(cmd))
         return subp.Popen(cmd, cwd=self.wd, stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE, encoding='utf-8')
 
     def add_script(self, script: T.Union[Script, str], source: str = '') -> TincScript:
         rel_path = script if isinstance(script, str) else script.value
-        assert rel_path not in self._scripts
+        check.not_in(rel_path, self._scripts)
 
         full_path = os.path.join(self.wd, rel_path)
         ts = TincScript(self.name, rel_path, full_path)

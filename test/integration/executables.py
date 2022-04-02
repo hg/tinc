@@ -2,7 +2,7 @@
 
 import subprocess as subp
 
-from testlib import log, path
+from testlib import log, path, check
 
 for p in (
         path.tinc_path,
@@ -13,5 +13,5 @@ for p in (
     cmd = [p, '--help']
     log.info('testing command "%s"', cmd)
     res = subp.run(cmd, stdout=subp.PIPE, stderr=subp.PIPE, encoding='utf-8')
-    assert res.returncode == 0
-    assert 'Usage:' in res.stdout or 'Usage:' in res.stderr
+    check.equals(0, res.returncode)
+    check.in_('Usage:', res.stdout, res.stderr)

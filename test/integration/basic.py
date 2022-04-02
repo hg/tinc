@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-
-from testlib import Script, Tinc, log
+from testlib import Script, Tinc, log, check
 
 
 def init() -> Tinc:
@@ -30,8 +28,7 @@ def test(*flags: str) -> None:
     node.cmd('stop')
 
     log.info('checking tincd exit code')
-
-    assert not tincd.wait()
+    check.equals(0, tincd.wait())
 
 
 test('-D')

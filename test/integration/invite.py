@@ -36,26 +36,26 @@ def run_invite_test(start_before_invite: bool):
     bar.cmd('join', foo_invite)
 
     log.info('compare configs')
-    check.files(foo.sub('hosts', foo.name), bar.sub('hosts', foo.name))
+    check.files_eq(foo.sub('hosts', foo.name), bar.sub('hosts', foo.name))
 
     log.info('compare keys')
 
     prefix = 'Ed25519PublicKey'
     foo_key = util.find_line(foo.sub('hosts', bar.name), prefix)
     bar_key = util.find_line(bar.sub('hosts', bar.name), prefix)
-    assert foo_key == bar_key
+    check.equals(foo_key, bar_key)
 
     log.info('checking Mode')
     bar_mode, _ = bar.cmd('get', 'Mode')
-    assert bar_mode.strip() == 'switch'
+    check.equals('switch', bar_mode.strip())
 
     log.info('checking Broadcast')
     bar_bcast, _ = bar.cmd('get', 'Broadcast')
-    assert bar_bcast.strip() == 'no'
+    check.equals('no', bar_bcast.strip())
 
     log.info('checking ConnectTo')
     bar_conn, _ = bar.cmd('get', 'ConnectTo')
-    assert bar_conn.strip() == foo.name
+    check.equals(foo.name, bar_conn.strip())
 
     log.info('configuring %s', bar.name)
     bar.cmd(stdin='''

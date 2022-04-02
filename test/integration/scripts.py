@@ -3,7 +3,7 @@
 import os.path
 import typing as T
 
-from testlib import Script, Tinc, log
+from testlib import Script, Tinc, log, check
 from testlib.util import random_string
 
 foo, bar = Tinc(), Tinc()
@@ -18,9 +18,9 @@ def check_tinc(script: Script) -> None:
 
     env = foo[script].wait().env
 
-    assert env['NETNAME'] == netnames[0]
-    assert env['NAME'] == foo.name
-    assert env['DEVICE'] == 'dummy'
+    check.equals(netnames[0], env['NETNAME'])
+    check.equals(foo.name, env['NAME'])
+    check.equals('dummy', env['DEVICE'])
 
 
 def check_subnet(script: Script, node: Tinc, subnet: str) -> None:
@@ -28,33 +28,33 @@ def check_subnet(script: Script, node: Tinc, subnet: str) -> None:
 
     env = foo[script].wait().env
 
-    assert env['NETNAME'] == netnames[0]
-    assert env['NAME'] == foo.name
-    assert env['DEVICE'] == 'dummy'
-    assert env['NODE'] == node.name
+    check.equals(netnames[0], env['NETNAME'])
+    check.equals(foo.name, env['NAME'])
+    check.equals('dummy', env['DEVICE'])
+    check.equals(node.name, env['NODE'])
 
     if node != foo:
-        assert env['REMOTEADDRESS'] == '127.0.0.1'
-        assert env['REMOTEPORT'] == str(node.port)
+        check.equals('127.0.0.1', env['REMOTEADDRESS'])
+        check.equals(str(node.port), env['REMOTEPORT'])
 
     if '#' in subnet:
         addr, weight = subnet.split('#')
-        assert env['SUBNET'] == addr
-        assert env['WEIGHT'] == weight
+        check.equals(addr, env['SUBNET'])
+        check.equals(weight, env['WEIGHT'])
     else:
-        assert env['SUBNET'] == subnet
+        check.equals(subnet, env['SUBNET'])
 
 
 def check_host(script: T.Union[Script, str]) -> None:
     log.info('checking host: %s', script)
 
     env = foo[script].wait().env
-    assert env['NETNAME'] == netnames[0]
-    assert env['NAME'] == foo.name
-    assert env['DEVICE'] == 'dummy'
-    assert env['NODE'] == bar.name
-    assert env['REMOTEADDRESS'] == '127.0.0.1'
-    assert env['REMOTEPORT'] == str(bar.port)
+    check.equals(netnames[0], env['NETNAME'])
+    check.equals(foo.name, env['NAME'])
+    check.equals('dummy', env['DEVICE'])
+    check.equals(bar.name, env['NODE'])
+    check.equals('127.0.0.1', env['REMOTEADDRESS'])
+    check.equals(str(bar.port), env['REMOTEPORT'])
 
 
 foo.cmd(stdin=f'''
@@ -97,10 +97,10 @@ url, _ = foo.cmd('-n', netnames[1], 'invite', bar.name)
 url = url.strip()
 env = foo[Script.INVITATION_CREATED].wait().env
 
-assert env['NETNAME'] == netnames[1]
-assert env['NAME'] == foo.name
-assert env['NODE'] == bar.name
-assert env['INVITATION_URL'] == url
+check.equals(netnames[1], env['NETNAME'])
+check.equals(foo.name, env['NAME'])
+check.equals(bar.name, env['NODE'])
+check.equals(url, env['INVITATION_URL'])
 assert os.path.isfile(env['INVITATION_FILE'])
 
 log.info('join client via url "%s"', url)
@@ -108,11 +108,11 @@ log.info('join client via url "%s"', url)
 bar.cmd('-n', netnames[2], 'join', url)
 env = foo[Script.INVITATION_ACCEPTED].wait().env
 
-assert env['NETNAME'] == netnames[0]
-assert env['NAME'] == foo.name
-assert env['DEVICE'] == 'dummy'
-assert env['NODE'] == bar.name
-assert env['REMOTEADDRESS'] == '127.0.0.1'
+check.equals(netnames[0], env['NETNAME'])
+check.equals(foo.name, env['NAME'])
+check.equals('dummy', env['DEVICE'])
+check.equals(bar.name, env['NODE'])
+check.equals('127.0.0.1', env['REMOTEADDRESS'])
 
 log.info('start client')
 

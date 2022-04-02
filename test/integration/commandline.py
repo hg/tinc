@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-
-from testlib import Script, Tinc, log
+from testlib import Script, Tinc, log, check
 
 
 def init() -> Tinc:
@@ -48,7 +46,7 @@ for code, flags in (
     stdout, stderr = cmd.communicate()
     log.debug('got code %d, stdout "%s", stderr "%s"', cmd.returncode, stdout, stderr)
 
-    assert cmd.returncode == code
+    check.equals(code, cmd.returncode)
 
 for code, flags in (
         (0, ['get', 'name']),

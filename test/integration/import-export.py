@@ -31,7 +31,7 @@ cmd.exchange(foo, baz, export_all=True)
 
 log.info('run exchange-all')
 out, err = foo.cmd('exchange-all', code=1)
-assert 'No host configuration files imported' in err
+check.in_('No host configuration files imported', err)
 
 log.info('run import')
 bar.cmd('import', stdin=out)
@@ -47,7 +47,7 @@ for a, b in (
         (foo.sub('hosts', baz.name), baz.sub('hosts', baz.name)),
 ):
     log.info('comparing configs %s and %s', a, b)
-    check.files(a, b)
+    check.files_eq(a, b)
 
 log.info('create %s scripts', foo)
 foo.add_script(Script.TINC_UP, f'''

@@ -5,7 +5,7 @@ import os
 import multiprocessing.connection as mpc
 import time
 
-from testlib import cmd
+from testlib import cmd, check
 
 content = "zHgfHEzRsKPU41rWoTzmcxxxUGvjfOtTZ0ZT2S1GezL7QbAcMGiLa8i6JOgn59Dq5BtlfbZj"
 
@@ -44,11 +44,6 @@ def main():
 
     ip_foo = '192.168.1.1'
     ip_bar = '192.168.1.2'
-
-    def netns_attach(ns: str, pid: int):
-        cmd = ['ip', 'netns', 'attach', ns, str(pid)]
-        log.info('attaching process to netns with "%s"', ' '.join(cmd))
-        return subp.run(cmd, check=True)
 
     def make_tinc_up(tinc: Tinc, ip: str) -> str:
         return f'''
@@ -152,8 +147,8 @@ def main():
         recv, _ = receiver.communicate()
         log.info('received %d bytes', len(recv))
 
-        assert not sender.wait()
-        assert recv.rstrip() == content
+        check.equals(0, sender.wait())
+        check.equals(content, recv.rstrip())
 
         foo.cmd('stop')
         bar.cmd('stop')
@@ -168,8 +163,8 @@ def main():
         tincd = foo.tincd()
         _, stderr = tincd.communicate()
 
-        assert tincd.returncode
-        assert 'Bogus compression level' in stderr
+        check.equals(1, tincd.returncode)
+        check.in_('Bogus compression level', stderr)
 
 
 last = sys.argv[-1]

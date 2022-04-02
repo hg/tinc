@@ -7,6 +7,7 @@ import socket
 import random
 import string
 
+from . import check
 from .log import log
 from .const import EXIT_SKIP
 
@@ -39,7 +40,7 @@ def find_line(filename: str, prefix: str) -> str:
     """
     with open(filename, 'r') as f:
         keylines = [line for line in f.readlines() if line.startswith(prefix)]
-    assert len(keylines) == 1
+    check.equals(1, len(keylines))
     return keylines[0].rstrip()
 
 

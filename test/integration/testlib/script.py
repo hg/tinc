@@ -4,6 +4,7 @@ import os
 from enum import Enum
 
 from . import path
+from .log import log
 from .notification import NotificationServer
 from .util import random_port
 from .event import Notification
@@ -23,34 +24,41 @@ class Script(Enum):
 
 
 class TincScript:
+    _node: str
+    _path: str
     _script: str
 
-    def __init__(self, name: str, script: str, path: str):
-        self._name = name
+    def __init__(self, node: str, script: str, path: str):
+        self._node = node
         self._script = script
         self._path = path
 
-    @property
-    def _disabled_name(self):
-        return f'{self._path}.disabled'
-
     def wait(self) -> Notification:
-        return notifications.get(self._name, self._script)
+        log.debug('waiting for script %s/%s', self._node, self._script)
+        return notifications.get(self._node, self._script)
 
     @property
     def enabled(self) -> bool:
         return os.path.exists(self._path)
 
     def enable(self) -> None:
+        log.debug('enabling script %s/%s', self._node, self._script)
         assert not self.enabled
         os.rename(self._disabled_name, self._path)
 
     def disable(self) -> None:
+        log.debug('disabling script %s/%s', self._node, self._script)
         assert self.enabled
         os.rename(self._path, self._disabled_name)
 
+    @property
+    def _disabled_name(self):
+        return f'{self._path}.disabled'
+
 
 def make_script(node: str, script: str, source: str) -> str:
+    log.debug('generating script %s/%s', node, script)
+
     return f'''#!{path.python_path}
 
 import os
@@ -79,7 +87,7 @@ this = Tinc('{node}')
 log = make_logger(this.name)
 
 def notify_test(args: T.Dict[str, T.Any] = {{}}, error: T.Optional[Exception] = None):
-    log.info(f'sending notification to port %d', {notifications.port})
+    log.debug(f'sending notification to port %d', {notifications.port})
 
     evt = Notification()
     evt.test = '{path.test_name}'
@@ -93,16 +101,16 @@ def notify_test(args: T.Dict[str, T.Any] = {{}}, error: T.Optional[Exception] = 
         try:
             with mpc.Client(('localhost', {notifications.port})) as conn:
                 conn.send(evt)
-            log.info(f'sent notification')
+            log.debug(f'sent notification')
             break
         except Exception as e:
             log.error(f'notification failed', exc_info=True)
             time.sleep(1)
 
 try:
-    log.info('running user code')
+    log.debug('running user code')
 {source}
-    log.info('user code finished')
+    log.debug('user code finished')
 except Exception as e:
     log.error('user code failed', exc_info=True)
     notify_test(error=e)
