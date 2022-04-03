@@ -482,6 +482,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			fprintf(stderr, "Listening...\n");
+			fflush(stderr);
 
 			sock = accept(sock, NULL, NULL);
 
@@ -491,6 +492,7 @@ int main(int argc, char *argv[]) {
 			}
 		} else {
 			fprintf(stderr, "Listening...\n");
+			fflush(stderr);
 
 			char buf[65536];
 			struct sockaddr addr;
