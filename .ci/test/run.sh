@@ -45,7 +45,7 @@ run_tests() {
   fi
 
   code=0
-  meson test -C "$flavor" --timeout-multiplier $timeout --verbose || code=$?
+  meson test -C "$flavor" --timeout-multiplier $timeout --verbose --repeat 666 || code=$?
 
   sudo tar -c -z -f "/tmp/logs/tests.$flavor.tar.gz" "$flavor" sanitizer/ || true
 
