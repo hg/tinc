@@ -37,6 +37,6 @@ if not version:
     except OSError as e:
         print("could not read version from file", e, file=stderr)
 elif version.startswith(prefix):
-    version = version[len(prefix):].strip()
+    version = version[len(prefix) :].strip()
 
 print(version if version else "unknown", end="")
