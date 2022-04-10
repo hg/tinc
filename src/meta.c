@@ -69,16 +69,16 @@ bool send_meta(connection_t *c, const void *buffer, size_t length) {
 		return false;
 #else
 
-		if(length > c->outbudget) {
+		if(length > c->legacy.out.budget) {
 			logger(DEBUG_META, LOG_ERR, "Byte limit exceeded for encryption to %s (%s)", c->name, c->hostname);
 			return false;
 		} else {
-			c->outbudget -= length;
+			c->legacy.out.budget -= length;
 		}
 
 		size_t outlen = length;
 
-		if(!cipher_encrypt(&c->outcipher, buffer, length, buffer_prepare(&c->outbuf, length), &outlen, false) || outlen != length) {
+		if(!cipher_encrypt(&c->legacy.out.cipher, buffer, length, buffer_prepare(&c->outbuf, length), &outlen, false) || outlen != length) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Error while encrypting metadata to %s (%s)",
 			       c->name, c->hostname);
 			return false;
@@ -249,16 +249,16 @@ bool receive_meta(connection_t *c) {
 			return false;
 #else
 
-			if((size_t)inlen > c->inbudget) {
+			if((size_t)inlen > c->legacy.in.budget) {
 				logger(DEBUG_META, LOG_ERR, "Byte limit exceeded for decryption from %s (%s)", c->name, c->hostname);
 				return false;
 			} else {
-				c->inbudget -= inlen;
+				c->legacy.in.budget -= inlen;
 			}
 
 			size_t outlen = inlen;
 
-			if(!cipher_decrypt(&c->incipher, bufp, inlen, buffer_prepare(&c->inbuf, inlen), &outlen, false) || (size_t)inlen != outlen) {
+			if(!cipher_decrypt(&c->legacy.in.cipher, bufp, inlen, buffer_prepare(&c->inbuf, inlen), &outlen, false) || (size_t)inlen != outlen) {
 				logger(DEBUG_ALWAYS, LOG_ERR, "Error while decrypting metadata from %s (%s)",
 				       c->name, c->hostname);
 				return false;

@@ -57,17 +57,28 @@ connection_t *new_connection(void) {
 	return xzalloc(sizeof(connection_t));
 }
 
+#ifndef DISABLE_LEGACY
+static void close_legacy_crypto(legacy_crypto_t *c) {
+	cipher_close(&c->cipher);
+	digest_close(&c->digest);
+	c->budget = 0;
+}
+
+static void close_legacy_ctx(legacy_ctx_t *legacy) {
+	close_legacy_crypto(&legacy->in);
+	close_legacy_crypto(&legacy->out);
+	rsa_free(legacy->rsa);
+	legacy->rsa = NULL;
+}
+#endif
+
 void free_connection(connection_t *c) {
 	if(!c) {
 		return;
 	}
 
 #ifndef DISABLE_LEGACY
-	cipher_close(&c->incipher);
-	digest_close(&c->indigest);
-	cipher_close(&c->outcipher);
-	digest_close(&c->outdigest);
-	rsa_free(c->rsa);
+	close_legacy_ctx(&c->legacy);
 #endif
 
 	sptps_stop(&c->sptps);

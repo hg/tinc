@@ -648,8 +648,8 @@ begin:
 	c->status.connecting = true;
 	c->name = xstrdup(outgoing->node->name);
 #ifndef DISABLE_LEGACY
-	c->outcipher = myself->connection->outcipher;
-	c->outdigest = myself->connection->outdigest;
+	c->legacy.out.cipher = myself->connection->legacy.out.cipher;
+	c->legacy.out.digest = myself->connection->legacy.out.digest;
 #endif
 	c->outmaclength = myself->connection->outmaclength;
 	c->outcompression = myself->connection->outcompression;
@@ -761,8 +761,8 @@ void handle_new_meta_connection(void *data, int flags) {
 	c = new_connection();
 	c->name = xstrdup("<unknown>");
 #ifndef DISABLE_LEGACY
-	c->outcipher = myself->connection->outcipher;
-	c->outdigest = myself->connection->outdigest;
+	c->legacy.out.cipher = myself->connection->legacy.out.cipher;
+	c->legacy.out.digest = myself->connection->legacy.out.digest;
 #endif
 	c->outmaclength = myself->connection->outmaclength;
 	c->outcompression = myself->connection->outcompression;

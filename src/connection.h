@@ -60,6 +60,20 @@ typedef union connection_status_t {
 #include "net.h"
 #include "node.h"
 
+#ifndef DISABLE_LEGACY
+typedef struct legacy_crypto_t {
+	cipher_t cipher;
+	digest_t digest;
+	uint64_t budget;
+} legacy_crypto_t;
+
+typedef struct legacy_ctx_t {
+	rsa_t *rsa;                     /* his public RSA key */
+	legacy_crypto_t in;             /* cipher/digest he will use to send data to us */
+	legacy_crypto_t out;            /* cipher/digest we will use to send data to him */
+} legacy_ctx_t;
+#endif
+
 typedef struct connection_t {
 	char *name;                     /* name he claims to have */
 	char *hostname;                 /* the hostname of its real ip */
@@ -79,13 +93,7 @@ typedef struct connection_t {
 	struct edge_t *edge;            /* edge associated with this connection */
 
 #ifndef DISABLE_LEGACY
-	rsa_t *rsa;                     /* his public RSA key */
-	cipher_t incipher;              /* Cipher he will use to send data to us */
-	cipher_t outcipher;             /* Cipher we will use to send data to him */
-	digest_t indigest;
-	digest_t outdigest;
-	uint64_t inbudget;
-	uint64_t outbudget;
+	legacy_ctx_t legacy;
 #endif
 
 	ecdsa_t *ecdsa;                 /* his public ECDSA key */

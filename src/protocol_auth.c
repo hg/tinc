@@ -514,12 +514,12 @@ bool id_h(connection_t *c, const char *request) {
 
 #ifndef DISABLE_LEGACY
 bool send_metakey(connection_t *c) {
-	if(!myself->connection->rsa) {
+	if(!myself->connection->legacy.rsa) {
 		logger(DEBUG_CONNECTIONS, LOG_ERR, "Peer %s (%s) uses legacy protocol which we don't support", c->name, c->hostname);
 		return false;
 	}
 
-	if(!read_rsa_public_key(&c->rsa, c->config_tree, c->name)) {
+	if(!read_rsa_public_key(&c->legacy.rsa, c->config_tree, c->name)) {
 		return false;
 	}
 
@@ -539,18 +539,18 @@ bool send_metakey(connection_t *c) {
 		cipher_name = "aes-256-cfb";
 	}
 
-	if(!cipher_open_by_name(&c->outcipher, cipher_name)) {
+	if(!cipher_open_by_name(&c->legacy.out.cipher, cipher_name)) {
 		return false;
 	}
 
-	c->outbudget = cipher_budget(&c->outcipher);
+	c->legacy.out.budget = cipher_budget(&c->legacy.out.cipher);
 
-	if(!digest_open_by_name(&c->outdigest, "sha256", DIGEST_ALGO_SIZE)) {
-		cipher_close(&c->outcipher);
+	if(!digest_open_by_name(&c->legacy.out.digest, "sha256", DIGEST_ALGO_SIZE)) {
+		cipher_close(&c->legacy.out.cipher);
 		return false;
 	}
 
-	const size_t len = rsa_size(c->rsa);
+	const size_t len = rsa_size(c->legacy.rsa);
 	char *key = alloca(len);
 	char *enckey = alloca(len);
 	char *hexkey = alloca(2 * len + 1);
@@ -571,7 +571,7 @@ bool send_metakey(connection_t *c) {
 
 	key[0] &= 0x7F;
 
-	if(!cipher_set_key_from_rsa(&c->outcipher, key, len, true)) {
+	if(!cipher_set_key_from_rsa(&c->legacy.out.cipher, key, len, true)) {
 		return false;
 	}
 
@@ -587,7 +587,7 @@ bool send_metakey(connection_t *c) {
 	   with a length equal to that of the modulus of the RSA key.
 	 */
 
-	if(!rsa_public_encrypt(c->rsa, key, len, enckey)) {
+	if(!rsa_public_encrypt(c->legacy.rsa, key, len, enckey)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Error during encryption of meta key for %s (%s)", c->name, c->hostname);
 		return false;
 	}
@@ -599,8 +599,8 @@ bool send_metakey(connection_t *c) {
 	/* Send the meta key */
 
 	bool result = send_request(c, "%d %d %d %d %d %s", METAKEY,
-	                           cipher_get_nid(&c->outcipher),
-	                           digest_get_nid(&c->outdigest), c->outmaclength,
+	                           cipher_get_nid(&c->legacy.out.cipher),
+	                           digest_get_nid(&c->legacy.out.digest), c->outmaclength,
 	                           c->outcompression, hexkey);
 
 	c->status.encryptout = true;
@@ -608,13 +608,13 @@ bool send_metakey(connection_t *c) {
 }
 
 bool metakey_h(connection_t *c, const char *request) {
-	if(!myself->connection->rsa) {
+	if(!myself->connection->legacy.rsa) {
 		return false;
 	}
 
 	char hexkey[MAX_STRING_SIZE];
 	int cipher, digest, maclength, compression;
-	const size_t len = rsa_size(myself->connection->rsa);
+	const size_t len = rsa_size(myself->connection->legacy.rsa);
 	char *enckey = alloca(len);
 	char *key = alloca(len);
 
@@ -636,7 +636,7 @@ bool metakey_h(connection_t *c, const char *request) {
 
 	/* Decrypt the meta key */
 
-	if(!rsa_private_decrypt(myself->connection->rsa, enckey, len, key)) {
+	if(!rsa_private_decrypt(myself->connection->legacy.rsa, enckey, len, key)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Error during decryption of meta key for %s (%s)", c->name, c->hostname);
 		return false;
 	}
@@ -649,7 +649,7 @@ bool metakey_h(connection_t *c, const char *request) {
 	/* Check and lookup cipher and digest algorithms */
 
 	if(cipher) {
-		if(!cipher_open_by_nid(&c->incipher, cipher) || !cipher_set_key_from_rsa(&c->incipher, key, len, false)) {
+		if(!cipher_open_by_nid(&c->legacy.in.cipher, cipher) || !cipher_set_key_from_rsa(&c->legacy.in.cipher, key, len, false)) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Error during initialisation of cipher from %s (%s)", c->name, c->hostname);
 			return false;
 		}
@@ -658,10 +658,10 @@ bool metakey_h(connection_t *c, const char *request) {
 		return false;
 	}
 
-	c->inbudget = cipher_budget(&c->incipher);
+	c->legacy.in.budget = cipher_budget(&c->legacy.in.cipher);
 
 	if(digest) {
-		if(!digest_open_by_nid(&c->indigest, digest, DIGEST_ALGO_SIZE)) {
+		if(!digest_open_by_nid(&c->legacy.in.digest, digest, DIGEST_ALGO_SIZE)) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Error during initialisation of digest from %s (%s)", c->name, c->hostname);
 			return false;
 		}
@@ -678,7 +678,7 @@ bool metakey_h(connection_t *c, const char *request) {
 }
 
 bool send_challenge(connection_t *c) {
-	const size_t len = rsa_size(c->rsa);
+	const size_t len = rsa_size(c->legacy.rsa);
 	char *buffer = alloca(len * 2 + 1);
 
 	c->hischallenge = xrealloc(c->hischallenge, len);
@@ -697,12 +697,12 @@ bool send_challenge(connection_t *c) {
 }
 
 bool challenge_h(connection_t *c, const char *request) {
-	if(!myself->connection->rsa) {
+	if(!myself->connection->legacy.rsa) {
 		return false;
 	}
 
 	char buffer[MAX_STRING_SIZE];
-	const size_t len = rsa_size(myself->connection->rsa);
+	const size_t len = rsa_size(myself->connection->legacy.rsa);
 
 	if(sscanf(request, "%*d " MAX_STRING, buffer) != 1) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Got bad %s from %s (%s)", "CHALLENGE", c->name, c->hostname);
@@ -734,13 +734,13 @@ bool challenge_h(connection_t *c, const char *request) {
 }
 
 bool send_chal_reply(connection_t *c) {
-	const size_t len = rsa_size(myself->connection->rsa);
-	size_t digestlen = digest_length(&c->indigest);
+	const size_t len = rsa_size(myself->connection->legacy.rsa);
+	size_t digestlen = digest_length(&c->legacy.in.digest);
 	char *digest = alloca(digestlen * 2 + 1);
 
 	/* Calculate the hash from the challenge we received */
 
-	if(!digest_create(&c->indigest, c->mychallenge, len, digest)) {
+	if(!digest_create(&c->legacy.in.digest, c->mychallenge, len, digest)) {
 		return false;
 	}
 
@@ -771,7 +771,7 @@ bool chal_reply_h(connection_t *c, const char *request) {
 
 	/* Check if the length of the hash is all right */
 
-	if(inlen != digest_length(&c->outdigest)) {
+	if(inlen != digest_length(&c->legacy.out.digest)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Possible intruder %s (%s): %s", c->name, c->hostname, "wrong challenge reply length");
 		return false;
 	}
@@ -779,7 +779,7 @@ bool chal_reply_h(connection_t *c, const char *request) {
 
 	/* Verify the hash */
 
-	if(!digest_verify(&c->outdigest, c->hischallenge, rsa_size(c->rsa), hishash)) {
+	if(!digest_verify(&c->legacy.out.digest, c->hischallenge, rsa_size(c->legacy.rsa), hishash)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Possible intruder %s (%s): %s", c->name, c->hostname, "wrong challenge reply");
 		return false;
 	}
