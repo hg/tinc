@@ -1,9 +1,10 @@
 set crypto=%1
 set builddir=%crypto%
 set args=
+set crossfile=.ci\cross\msvc\%HOST_ARCH%
 
-if %TYPE% == cross (
-    set args=--cross-file .ci/cross/msvc/%ARCH:amd64_=%
+if exist %crossfile% (
+    set args=--cross-file %crossfile%
 )
 
 echo configure build directory

@@ -333,13 +333,13 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - { arch: amd64, type: native }
-          - { arch: amd64_x86, type: native }
-          - { arch: amd64_arm64, type: cross }
+          - { build: amd64, host: amd64, test: yes }
+          - { build: amd64, host: x86, test: yes }
+          - { build: amd64, host: arm64, test: no }
 
     env:
-      ARCH: ${{ matrix.target.arch }}
-      TYPE: ${{ matrix.target.type }}
+      HOST_ARCH: ${{ matrix.target.host }}
+      BUILD_ARCH: ${{ matrix.target.build }}
 
     steps:
       - name: Install meson
@@ -351,14 +351,14 @@ jobs:
       - name: Activate dev environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: ${{ matrix.target.arch }}
+          arch: ${{ matrix.target.build == matrix.target.host && matrix.target.host || format('{0}_{1}', matrix.target.build, matrix.target.host) }}
 
       - name: Build (nolegacy)
         run: .ci\windows\build.cmd nolegacy
 
       - name: Test (nolegacy)
         run: .ci\windows\test.cmd nolegacy
-        if: always() && matrix.target.type == 'native'
+        if: always() && matrix.target.test == 'yes'
 
       - name: Build (OpenSSL)
         run: .ci\windows\build.cmd openssl
@@ -366,4 +366,4 @@ jobs:
 
       - name: Test (OpenSSL)
         run: .ci\windows\test.cmd openssl
-        if: always() && matrix.target.type == 'native'
+        if: always() && matrix.target.test == 'yes'
