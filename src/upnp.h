@@ -22,6 +22,12 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void upnp_init(bool tcp, bool udp);
+
+}
 
 #endif

@@ -31,7 +31,7 @@ linters = (
         "--recursive",
         "--options=.astylerc",
         "--dry-run" if DRY else "--formatted",
-        "./*.c",
+        "./*.cc",
         "./*.h",
     ],
     ["shfmt", "-d" if DRY else "-w", "-i", "2", "-s", "."],

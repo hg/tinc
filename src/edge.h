@@ -22,9 +22,11 @@
 */
 
 #include "splay_tree.h"
-#include "connection.h"
 #include "net.h"
-#include "node.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct edge_t {
 	struct node_t *from;
@@ -49,5 +51,7 @@ extern void edge_add(edge_t *e);
 extern void edge_del(edge_t *e);
 extern edge_t *lookup_edge(struct node_t *from, struct node_t *to);
 extern bool dump_edges(struct connection_t *c);
+
+}
 
 #endif

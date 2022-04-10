@@ -25,6 +25,10 @@
 #define ECDH_SIZE 32
 #define ECDH_SHARED_SIZE 32
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef TINC_ECDH_INTERNAL
 typedef struct ecdh ecdh_t;
 #endif
@@ -32,5 +36,7 @@ typedef struct ecdh ecdh_t;
 extern ecdh_t *ecdh_generate_public(void *pubkey) ATTR_MALLOC;
 extern bool ecdh_compute_shared(ecdh_t *ecdh, const void *pubkey, void *shared) ATTR_WARN_UNUSED;
 extern void ecdh_free(ecdh_t *ecdh);
+
+}
 
 #endif

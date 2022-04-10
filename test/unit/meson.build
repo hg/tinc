@@ -3,7 +3,7 @@ if not dep_cmocka.found()
   subdir_done()
 endif
 
-can_wrap = cc.has_link_argument('-Wl,--wrap=func')
+can_wrap = cpp.has_link_argument('-Wl,--wrap=func')
 if not can_wrap
   message('linker has no support for function wrapping, mocked tests will not run')
 endif
@@ -14,21 +14,21 @@ link_tincd = { 'lib': lib_tincd, 'dep': deps_tincd }
 # Test definition format:
 #
 # 'free-form test name': {
-#   'code': 'test1.c',      // or ['test1.c', 'test1_util.c']
-#   'mock': ['foo', 'bar'], // list of functions to mock (default: empty)
-#   'link': link_tinc,      // which binary to link with (default: tincd)
+#   'code': 'test1.cc',      // or ['test1.cc', 'test1_util.cc']
+#   'mock': ['foo', 'bar'],  // list of functions to mock (default: empty)
+#   'link': link_tinc,       // which binary to link with (default: tincd)
 # }
 
 tests = {
   'net': {
-    'code': 'test_net.c',
+    'code': 'test_net.cc',
     'mock': ['execute_script', 'environment_init', 'environment_exit'],
   },
   'subnet': {
-    'code': 'test_subnet.c',
+    'code': 'test_subnet.cc',
   },
   'splay_tree': {
-    'code': 'test_splay_tree.c',
+    'code': 'test_splay_tree.cc',
     'link': link_tinc,
   },
 }

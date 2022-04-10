@@ -46,7 +46,7 @@
 #include <time.h>
 
 #ifdef HAVE_STATIC_ASSERT
-#define STATIC_ASSERT(expr, msg) _Static_assert((expr), msg)
+#define STATIC_ASSERT(expr, msg) static_assert((expr), msg)
 #else
 #define STATIC_ASSERT(check, msg)
 #endif

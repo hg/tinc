@@ -20,6 +20,10 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct splay_node_t {
 
 	/* Linked list part */
@@ -54,7 +58,7 @@ typedef struct splay_tree_t {
 	splay_node_t *root;
 
 	splay_compare_t compare;
-	splay_action_t delete;
+	splay_action_t release;
 
 	unsigned int count;
 	unsigned int generation;
@@ -63,7 +67,7 @@ typedef struct splay_tree_t {
 
 /* (De)constructors */
 
-extern splay_tree_t *splay_alloc_tree(splay_compare_t compare, splay_action_t delete) ATTR_MALLOC;
+extern splay_tree_t *splay_alloc_tree(splay_compare_t compare, splay_action_t release) ATTR_MALLOC;
 extern void splay_free_tree(splay_tree_t *tree);
 
 extern splay_node_t *splay_alloc_node(void) ATTR_MALLOC;
@@ -112,6 +116,8 @@ extern void splay_foreach_node(const splay_tree_t *tree, splay_action_t action);
    CAUTION: while this construct supports deleting the current item,
    it does *not* support deleting *other* nodes while iterating on the tree.
  */
-#define splay_each(type, item, tree) (type *item = (type *)1; item; item = NULL) for(splay_node_t *node = (tree)->head, *next; item = node ? node->data : NULL, next = node ? node->next : NULL, node; node = next)
+#define splay_each(type, item, tree) (type *item = (type *)1; item; item = NULL) for(splay_node_t *node = (tree)->head, *next; item = node ? static_cast<decltype(item)>(node->data) : NULL, next = node ? node->next : NULL, node; node = next)
+
+}
 
 #endif

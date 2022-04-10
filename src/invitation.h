@@ -20,7 +20,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int cmd_invite(int argc, char *argv[]);
 int cmd_join(int argc, char *argv[]);
+
+}
 
 #endif

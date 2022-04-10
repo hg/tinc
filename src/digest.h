@@ -26,6 +26,9 @@
 #define DIGEST_ALGO_SIZE ((size_t) -1)
 
 #ifndef DISABLE_LEGACY
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef HAVE_OPENSSL
 #include "openssl/digest.h"
@@ -50,6 +53,7 @@ extern size_t digest_keylength(const digest_t *digest);
 extern size_t digest_length(const digest_t *digest);
 extern bool digest_active(const digest_t *digest);
 
+}
 #endif // DISABLE_LEGACY
 
 #endif // TINC_DIGEST_H

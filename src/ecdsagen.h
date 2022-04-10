@@ -22,8 +22,14 @@
 
 #include "ecdsa.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern ecdsa_t *ecdsa_generate(void) ATTR_MALLOC;
 extern bool ecdsa_write_pem_public_key(ecdsa_t *ecdsa, FILE *fp) ATTR_WARN_UNUSED;
 extern bool ecdsa_write_pem_private_key(ecdsa_t *ecdsa, FILE *fp) ATTR_WARN_UNUSED;
+
+}
 
 #endif

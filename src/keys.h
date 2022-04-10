@@ -5,6 +5,10 @@
 #include "ecdsa.h"
 #include "splay_tree.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern bool disable_old_keys(const char *filename, const char *what);
 
 extern ecdsa_t *read_ecdsa_private_key(splay_tree_t *config_tree, char **keyfile);
@@ -14,5 +18,7 @@ extern bool read_ecdsa_public_key(ecdsa_t **ecdsa, splay_tree_t **config_tree, c
 extern rsa_t *read_rsa_private_key(splay_tree_t *config, char **keyfile);
 extern bool read_rsa_public_key(rsa_t **rsa, splay_tree_t *config_tree, const char *name);
 #endif
+
+}
 
 #endif // TINC_KEYS_H

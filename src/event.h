@@ -26,6 +26,10 @@
 #define IO_READ 1
 #define IO_WRITE 2
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*io_cb_t)(void *data, int flags);
 typedef void (*timeout_cb_t)(void *data);
 typedef void (*signal_cb_t)(void *data);
@@ -72,5 +76,7 @@ extern void signal_del(signal_t *sig);
 
 extern bool event_loop(void);
 extern void event_exit(void);
+
+}
 
 #endif

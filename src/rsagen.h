@@ -22,8 +22,14 @@
 
 #include "rsa.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern rsa_t *rsa_generate(size_t bits, unsigned long exponent) ATTR_MALLOC;
 extern bool rsa_write_pem_public_key(rsa_t *rsa, FILE *fp) ATTR_WARN_UNUSED;
 extern bool rsa_write_pem_private_key(rsa_t *rsa, FILE *fp) ATTR_WARN_UNUSED;
+
+}
 
 #endif

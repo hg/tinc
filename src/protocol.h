@@ -22,6 +22,10 @@
 */
 
 #include "ecdsa.h"
+#include "edge.h"
+#include "net.h"
+#include "node.h"
+#include "subnet.h"
 
 /* Protocol version. Different major versions are incompatible. */
 
@@ -32,6 +36,10 @@
 
 #ifdef ERROR
 #undef ERROR
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /* Request numbers */
@@ -72,11 +80,6 @@ extern ecdsa_t *invitation_key;
 
 #define MAX_STRING_SIZE 2049
 #define MAX_STRING "%2048s"
-
-#include "edge.h"
-#include "net.h"
-#include "node.h"
-#include "subnet.h"
 
 /* Basic functions */
 
@@ -134,5 +137,7 @@ extern bool sptps_tcppacket_h(struct connection_t *c, const char *request);
 extern bool control_h(struct connection_t *c, const char *request);
 extern bool udp_info_h(struct connection_t *c, const char *request);
 extern bool mtu_info_h(struct connection_t *c, const char *request);
+
+}
 
 #endif

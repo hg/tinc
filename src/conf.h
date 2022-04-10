@@ -25,6 +25,10 @@
 #include "splay_tree.h"
 #include "subnet.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct config_t {
 	char *variable;
 	char *value;
@@ -59,5 +63,7 @@ extern void read_config_options(splay_tree_t *config_tree, const char *prefix);
 extern bool read_server_config(splay_tree_t *config_tree);
 extern bool read_host_config(splay_tree_t *config_tree, const char *name, bool verbose);
 extern bool append_config_file(const char *name, const char *key, const char *value);
+
+}
 
 #endif

@@ -22,8 +22,14 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern bool init_control(void);
 extern void exit_control(void);
 extern char controlcookie[];
+
+}
 
 #endif

@@ -23,6 +23,14 @@
 
 #include "system.h"
 
+#ifdef HAVE_WINDOWS
+#include "event.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern bool do_detach;
 extern bool use_logfile;
 extern bool use_syslog;
@@ -30,10 +38,10 @@ extern bool use_syslog;
 extern bool detach(void);
 
 #ifdef HAVE_WINDOWS
-#include "event.h"
-
 extern io_t stop_io;
 extern bool init_service(void);
 #endif
+
+}
 
 #endif

@@ -25,6 +25,10 @@
 #define MAX_CACHED_ADDRESSES 8
 #define ADDRESS_CACHE_VERSION 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct address_cache_t {
 	struct node_t *node;
 	struct splay_tree_t *config_tree;
@@ -46,5 +50,7 @@ const sockaddr_t *get_recent_address(address_cache_t *cache);
 address_cache_t *open_address_cache(struct node_t *node);
 void reset_address_cache(address_cache_t *cache, const sockaddr_t *sa);
 void close_address_cache(address_cache_t *cache);
+
+}
 
 #endif

@@ -27,6 +27,10 @@
 
 #define B64_SIZE(len) ((len) * 4 / 3 + 5)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern size_t hex2bin(const char *src, void *dst, size_t length);
 extern size_t bin2hex(const void *src, char *dst, size_t length);
 
@@ -68,5 +72,7 @@ extern bool check_netname(const char *netname, bool strict);
 char *replace_name(const char *name);
 
 extern FILE *fopenmask(const char *filename, const char *mode, mode_t perms);
+
+}
 
 #endif

@@ -1,7 +1,7 @@
 src_chacha_poly = files(
-  'chacha-poly1305.c',
-  'chacha.c',
-  'poly1305.c',
+  'chacha-poly1305.cc',
+  'chacha.cc',
+  'poly1305.cc',
 )
 
 lib_chacha_poly = static_library(

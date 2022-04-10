@@ -12,13 +12,13 @@ cdata.set_quoted('SBINDIR', dir_sbin)
 cdata.set('HAVE_' + os_name.to_upper(), 1)
 
 foreach attr : ['malloc', 'nonnull', 'warn_unused_result', 'packed', 'format']
-  if cc.has_function_attribute(attr)
+  if cpp.has_function_attribute(attr)
     cdata.set('HAVE_ATTR_' + attr.to_upper(), 1,
               description: '__attribute__((__@0@__))'.format(attr))
   endif
 endforeach
 
-if cc.compiles('''
+if cpp.compiles('''
     _Static_assert(1, "ok");
     int main(void) { return 0; }
 ''')
@@ -102,66 +102,66 @@ subdir('ed25519')
 subdir('chacha-poly1305')
 
 src_lib_common = [
-  'conf.c',
-  'dropin.c',
-  'keys.c',
-  'list.c',
-  'names.c',
-  'netutl.c',
-  'script.c',
-  'splay_tree.c',
-  'sptps.c',
-  'subnet_parse.c',
-  'utils.c',
-  'version.c',
-  'xoshiro.c',
-  'logger.c',
+  'conf.cc',
+  'dropin.cc',
+  'keys.cc',
+  'list.cc',
+  'names.cc',
+  'netutl.cc',
+  'script.cc',
+  'splay_tree.cc',
+  'sptps.cc',
+  'subnet_parse.cc',
+  'utils.cc',
+  'version.cc',
+  'xoshiro.cc',
 ]
 
 src_tinc = [
-  'fsck.c',
-  'ifconfig.c',
-  'info.c',
-  'invitation.c',
-  'top.c',
+  'fsck.cc',
+  'ifconfig.cc',
+  'info.cc',
+  'invitation.cc',
+  'top.cc',
 ]
 
 src_tincd = [
-  'address_cache.c',
-  'autoconnect.c',
-  'buffer.c',
+  'address_cache.cc',
+  'autoconnect.cc',
+  'buffer.cc',
   'compression.h',
-  'conf_net.c',
-  'connection.c',
-  'control.c',
-  'dummy_device.c',
-  'edge.c',
-  'event.c',
-  'graph.c',
-  'meta.c',
-  'multicast_device.c',
-  'net.c',
-  'net_packet.c',
-  'net_setup.c',
-  'net_socket.c',
-  'node.c',
-  'process.c',
-  'protocol.c',
-  'protocol_auth.c',
-  'protocol_edge.c',
-  'protocol_key.c',
-  'protocol_misc.c',
-  'protocol_subnet.c',
-  'raw_socket_device.c',
-  'route.c',
-  'subnet.c',
+  'conf_net.cc',
+  'connection.cc',
+  'control.cc',
+  'logger.cc',
+  'dummy_device.cc',
+  'edge.cc',
+  'event.cc',
+  'graph.cc',
+  'meta.cc',
+  'multicast_device.cc',
+  'net.cc',
+  'net_packet.cc',
+  'net_setup.cc',
+  'net_socket.cc',
+  'node.cc',
+  'process.cc',
+  'protocol.cc',
+  'protocol_auth.cc',
+  'protocol_edge.cc',
+  'protocol_key.cc',
+  'protocol_misc.cc',
+  'protocol_subnet.cc',
+  'raw_socket_device.cc',
+  'route.cc',
+  'subnet.cc',
 ]
 
-cc_flags_tincd = cc_flags
+cpp_flags_tincd = cpp_flags
 
 deps_common = []
 deps_tinc = []
-deps_tincd = [cc.find_library('m', required: false)]
+deps_tincd = [cpp.find_library('m', required: false)]
 
 if os_name in ['linux', 'android']
   subdir('linux')
@@ -174,7 +174,7 @@ elif os_name == 'windows'
 endif
 
 foreach h : check_headers
-  if cc.has_header(h)
+  if cpp.has_header(h)
     cdata.set('HAVE_' + h.to_upper().underscorify(),
               1,
               description: '#include <' + h + '>')
@@ -182,7 +182,7 @@ foreach h : check_headers
 endforeach
 
 if cdata.has('HAVE_SYS_UN_H')
-  src_tincd += 'fd_device.c'
+  src_tincd += 'fd_device.cc'
 endif
 
 confdata = configuration_data()
@@ -195,14 +195,14 @@ have_prefix = '''
 '''.format(build_root, meson.current_source_dir())
 
 foreach f : check_functions
-  if cc.has_function(f, prefix: have_prefix, args: cc_defs)
+  if cpp.has_function(f, prefix: have_prefix, args: cc_defs)
     cdata.set('HAVE_' + f.to_upper(),
               1,
               description: 'function ' + f)
   endif
 endforeach
 
-if cc.has_function('res_init', prefix: '''
+if cpp.has_function('res_init', prefix: '''
   #include <netinet/in.h>
   #include <resolv.h>
 ''', args: cc_defs)
@@ -210,15 +210,15 @@ if cc.has_function('res_init', prefix: '''
 endif
 
 foreach type : check_types
-  if cc.has_type(type, prefix: have_prefix, args: cc_defs)
+  if cpp.has_type(type, prefix: have_prefix, args: cc_defs)
     name = 'HAVE_' + type.to_upper().underscorify()
     cdata.set(name, 1, description: type)
   endif
 endforeach
 
 src_getopt = []
-if not cdata.has('HAVE_GETOPT_H') or not cc.has_function('getopt_long', prefix: have_prefix, args: cc_defs)
-  src_getopt = ['getopt.c', 'getopt1.c']
+if not cdata.has('HAVE_GETOPT_H') or not cpp.has_function('getopt_long', prefix: have_prefix, args: cc_defs)
+  src_getopt = ['getopt.cc', 'getopt1.cc']
   src_lib_common += src_getopt
 endif
 
@@ -226,16 +226,16 @@ if not opt_miniupnpc.disabled()
   dep_miniupnpc = dependency('miniupnpc', required: false, static: static)
   if not dep_miniupnpc.found()
     # No pkg-config files on MinGW
-    dep_miniupnpc = cc.find_library('miniupnpc', required: opt_miniupnpc, static: static)
+    dep_miniupnpc = cpp.find_library('miniupnpc', required: opt_miniupnpc, static: static)
   endif
   if dep_miniupnpc.found()
-    src_tincd += 'upnp.c'
+    src_tincd += 'upnp.cc'
     deps_tincd += [
       dependency('threads', static: static),
       dep_miniupnpc,
     ]
     if static
-      cc_flags_tincd += '-DMINIUPNP_STATICLIB'
+      cpp_flags_tincd += '-DMINIUPNP_STATICLIB'
     endif
     cdata.set('HAVE_MINIUPNPC', 1)
   endif
@@ -257,11 +257,11 @@ if opt_readline.auto() and os_name == 'windows'
 else
   dep_readline = dependency('readline', required: opt_readline, static: static)
   if not dep_readline.found()
-    dep_readline = cc.find_library('readline', required: opt_readline, static: static)
+    dep_readline = cpp.find_library('readline', required: opt_readline, static: static)
   endif
   if dep_readline.found() and \
-     cc.has_header('readline/readline.h', dependencies: dep_readline) and \
-     cc.has_header('readline/history.h', dependencies: dep_readline)
+     cpp.has_header('readline/readline.h', dependencies: dep_readline) and \
+     cpp.has_header('readline/history.h', dependencies: dep_readline)
     cdata.set('HAVE_READLINE', 1)
     deps_tinc += dep_readline
   endif
@@ -279,7 +279,7 @@ endif
 if not opt_lzo.disabled()
   dep_lzo = dependency('lzo2', required: false, static: static)
   if not dep_lzo.found()
-    dep_lzo = cc.find_library('lzo2', required: opt_lzo, static: static)
+    dep_lzo = cpp.find_library('lzo2', required: opt_lzo, static: static)
   endif
   if not dep_lzo.found()
     dep_lzo = dependency('lzo2',
@@ -288,9 +288,9 @@ if not opt_lzo.disabled()
                          fallback: ['lzo2', 'lzo2_dep'])
   endif
   if dep_lzo.found()
-    if dep_lzo.type_name() == 'internal' or cc.has_header('lzo/lzo1x.h', dependencies: dep_lzo)
+    if dep_lzo.type_name() == 'internal' or cpp.has_header('lzo/lzo1x.h', dependencies: dep_lzo)
       cdata.set('LZO1X_H', '<lzo/lzo1x.h>')
-    elif cc.has_header('lzo1x.h', dependencies: dep_lzo)
+    elif cpp.has_header('lzo1x.h', dependencies: dep_lzo)
       cdata.set('LZO1X_H', '<lzo1x.h>')
     else
       msg = 'lzo1x.h not found'
@@ -317,10 +317,10 @@ if dep_lz4.found()
 endif
 
 dep_vde = dependency('vdeplug', required: opt_vde, static: static)
-dep_dl = cc.find_library('dl', required: opt_vde)
+dep_dl = cpp.find_library('dl', required: opt_vde)
 if dep_vde.found() and dep_dl.found()
   cdata.set('ENABLE_VDE', 1)
-  src_tincd += 'vde_device.c'
+  src_tincd += 'vde_device.cc'
   deps_tincd += [dep_dl, dep_vde]
 endif
 
@@ -331,7 +331,7 @@ endif
 subdir(opt_crypto)
 
 if opt_crypto != 'nolegacy'
-  src_lib_crypto += ['cipher.c', 'digest.c']
+  src_lib_crypto += ['cipher.cc', 'digest.cc']
 endif
 
 subdir('include')
@@ -374,7 +374,7 @@ lib_tincd = static_library(
   sources: src_tincd,
   dependencies: deps_tincd,
   link_with: lib_common,
-  c_args: cc_flags_tincd,
+  c_args: cpp_flags_tincd,
   implicit_include_directories: false,
   include_directories: inc_conf,
   build_by_default: false,
@@ -382,7 +382,7 @@ lib_tincd = static_library(
 
 exe_tinc = executable(
   'tinc',
-  sources: 'tincctl.c',
+  sources: 'tincctl.cc',
   dependencies: deps_tinc,
   link_with: lib_tinc,
   implicit_include_directories: false,
@@ -393,10 +393,10 @@ exe_tinc = executable(
 
 exe_tincd = executable(
   'tincd',
-  sources: 'tincd.c',
+  sources: 'tincd.cc',
   dependencies: deps_tincd,
   link_with: lib_tincd,
-  c_args: cc_flags_tincd,
+  c_args: cpp_flags_tincd,
   implicit_include_directories: false,
   include_directories: inc_conf,
   install: true,
@@ -405,7 +405,7 @@ exe_tincd = executable(
 
 exe_sptps_test = executable(
   'sptps_test',
-  sources: [src_getopt, 'sptps_test.c'],
+  sources: [src_getopt, 'sptps_test.cc'],
   dependencies: deps_lib_common,
   link_with: lib_common,
   implicit_include_directories: false,
@@ -415,7 +415,7 @@ exe_sptps_test = executable(
 
 exe_sptps_keypair = executable(
   'sptps_keypair',
-  sources: [src_getopt, 'sptps_keypair.c'],
+  sources: [src_getopt, 'sptps_keypair.cc'],
   dependencies: deps_lib_common,
   link_with: lib_common,
   implicit_include_directories: false,
@@ -424,11 +424,11 @@ exe_sptps_keypair = executable(
 )
 
 if os_name == 'linux'
-  dep_rt = cc.find_library('rt')
+  dep_rt = cpp.find_library('rt')
 
   exe_sptps_speed = executable(
     'sptps_speed',
-    sources: 'sptps_speed.c',
+    sources: 'sptps_speed.cc',
     dependencies: [deps_lib_common, dep_rt],
     link_with: lib_common,
     implicit_include_directories: false,

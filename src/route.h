@@ -24,6 +24,10 @@
 #include "net.h"
 #include "node.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum rmode_t {
 	RMODE_HUB = 0,
 	RMODE_SWITCH,
@@ -55,5 +59,7 @@ extern bool pcap;
 extern mac_t mymac;
 
 extern void route(struct node_t *source, struct vpn_packet_t *packet);
+
+}
 
 #endif

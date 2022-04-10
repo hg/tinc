@@ -24,6 +24,10 @@
 #include "net.h"
 #include "node.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum subnet_type_t {
 	SUBNET_MAC = 0,
 	SUBNET_IPV4,
@@ -87,5 +91,7 @@ extern subnet_t *lookup_subnet_ipv6(const ipv6_t *address);
 extern bool dump_subnets(struct connection_t *c);
 extern void subnet_cache_flush_tables(void);
 extern void subnet_cache_flush_table(subnet_type_t ipver);
+
+}
 
 #endif

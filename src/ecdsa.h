@@ -22,6 +22,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef TINC_ECDSA_INTERNAL
 typedef struct ecdsa ecdsa_t;
 #endif
@@ -35,5 +39,7 @@ extern bool ecdsa_sign(ecdsa_t *ecdsa, const void *in, size_t inlen, void *out) 
 extern bool ecdsa_verify(ecdsa_t *ecdsa, const void *in, size_t inlen, const void *out) ATTR_WARN_UNUSED;
 extern bool ecdsa_active(ecdsa_t *ecdsa);
 extern void ecdsa_free(ecdsa_t *ecdsa);
+
+}
 
 #endif

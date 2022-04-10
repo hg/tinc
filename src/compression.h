@@ -1,6 +1,10 @@
 #ifndef TINC_COMPRESSION_H
 #define TINC_COMPRESSION_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum compression_level_t {
 	COMPRESS_NONE = 0,
 
@@ -21,5 +25,7 @@ typedef enum compression_level_t {
 
 	COMPRESS_GUARD = INT_MAX, /* ensure that sizeof(compression_level_t) == sizeof(int) */
 } compression_level_t;
+
+}
 
 #endif

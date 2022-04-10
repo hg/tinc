@@ -23,6 +23,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct environment {
 	int n;
 	int size;
@@ -35,5 +39,7 @@ extern void environment_init(environment_t *env);
 extern void environment_exit(environment_t *env);
 
 extern bool execute_script(const char *name, environment_t *env);
+
+}
 
 #endif

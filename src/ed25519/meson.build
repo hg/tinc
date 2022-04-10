@@ -1,15 +1,15 @@
 src_ed25519 = files(
-  'ecdh.c',
-  'ecdsa.c',
-  'ecdsagen.c',
-  'fe.c',
-  'ge.c',
-  'key_exchange.c',
-  'keypair.c',
-  'sc.c',
-  'sha512.c',
-  'sign.c',
-  'verify.c',
+  'ecdh.cc',
+  'ecdsa.cc',
+  'ecdsagen.cc',
+  'fe.cc',
+  'ge.cc',
+  'key_exchange.cc',
+  'keypair.cc',
+  'sc.cc',
+  'sha512.cc',
+  'sign.cc',
+  'verify.cc',
 )
 
 lib_ed25519 = static_library(

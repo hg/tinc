@@ -23,6 +23,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef AF_INET
 #define AF_INET 2
 #endif
@@ -155,5 +159,7 @@ PACKED(struct icmp {
 #endif
 
 STATIC_ASSERT(sizeof(struct icmp) == 28, "icmp has incorrect size");
+
+}
 
 #endif

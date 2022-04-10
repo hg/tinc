@@ -21,6 +21,10 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_DAEMON
 extern int daemon(int, int);
 #endif
@@ -94,5 +98,7 @@ static const int R_OK = 4;
 #endif // _MSC_VER
 
 extern bool sleep_millis(unsigned int ms);
+
+}
 
 #endif // TINC_DROPIN_H

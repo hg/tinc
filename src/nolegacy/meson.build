@@ -1,6 +1,6 @@
 src_lib_crypto = files(
-  'crypto.c',
-  'prf.c',
+  'crypto.cc',
+  'prf.cc',
 )
 
 dep_crypto = dependency('', required: false)

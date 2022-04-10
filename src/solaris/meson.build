@@ -1,4 +1,4 @@
-src_tincd += files('device.c')
+src_tincd += files('device.cc')
 
-deps_common += cc.find_library('libsocket')
+deps_common += cpp.find_library('libsocket')
 

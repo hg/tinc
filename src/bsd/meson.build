@@ -11,7 +11,7 @@ check_functions += [
   'fdevname',
 ]
 
-src_tincd += files('device.c')
+src_tincd += files('device.cc')
 
 if os_name == 'darwin'
   dep_tunemu = dependency('tunemu', required: opt_tunemu, static: static)
@@ -19,7 +19,7 @@ if os_name == 'darwin'
 
   if dep_tunemu.found() and dep_pcap.found()
     deps_tincd += [dep_tunemu, dep_pcap]
-    src_tincd += files('tunemu.c')
+    src_tincd += files('tunemu.cc')
     cdata.set('ENABLE_TUNEMU', 1)
   endif
 endif

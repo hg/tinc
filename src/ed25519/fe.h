@@ -3,7 +3,6 @@
 
 #include "fixedint.h"
 
-
 /*
     fe means field element.
     Here the field is \Z/(2^255-19).

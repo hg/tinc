@@ -27,12 +27,19 @@
 #include "rsa.h"
 #include "list.h"
 #include "sptps.h"
+#include "ecdsa.h"
+#include "net.h"
+#include "node.h"
 
 #define OPTION_INDIRECT         0x0001
 #define OPTION_TCPONLY          0x0002
 #define OPTION_PMTU_DISCOVERY   0x0004
 #define OPTION_CLAMP_MSS        0x0008
 #define OPTION_VERSION(x) ((x) >> 24) /* Top 8 bits are for protocol minor version */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef union connection_status_t {
 	struct {
@@ -51,14 +58,9 @@ typedef union connection_status_t {
 		bool invitation: 1;             /* 1 if this is an invitation */
 		bool invitation_used: 1;        /* 1 if the invitation has been consumed */
 		bool tarpit: 1;                 /* 1 if the connection should be added to the tarpit */
-	};
+	} bits;
 	uint32_t value;
 } connection_status_t;
-
-#include "ecdsa.h"
-#include "edge.h"
-#include "net.h"
-#include "node.h"
 
 typedef struct connection_t {
 	char *name;                     /* name he claims to have */
@@ -119,5 +121,7 @@ extern void free_connection(connection_t *c);
 extern void connection_add(connection_t *c);
 extern void connection_del(connection_t *c);
 extern bool dump_connections(struct connection_t *c);
+
+}
 
 #endif

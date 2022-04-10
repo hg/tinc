@@ -23,6 +23,10 @@
 
 #include "net.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int device_fd;
 extern char *device;
 extern char *iface;
@@ -44,5 +48,7 @@ extern const devops_t fd_devops;
 extern const devops_t uml_devops;
 extern const devops_t vde_devops;
 extern devops_t devops;
+
+}
 
 #endif

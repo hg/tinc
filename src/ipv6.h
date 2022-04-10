@@ -23,6 +23,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef AF_INET6
 #define AF_INET6 10
 #endif
@@ -113,5 +117,7 @@ PACKED(struct nd_opt_hdr {
 #endif
 
 STATIC_ASSERT(sizeof(struct nd_opt_hdr) == 2, "nd_opt_hdr has incorrect size");
+
+}
 
 #endif

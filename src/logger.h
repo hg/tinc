@@ -23,6 +23,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum debug_t {
 	DEBUG_UNSET = -1,               /* Used by tinc as the default debug level. */
 	DEBUG_NOTHING = 0,              /* Quiet mode, only show starting/stopping of the daemon */
@@ -68,8 +72,6 @@ enum {
 #endif
 #endif
 
-#include <stdbool.h>
-
 extern debug_t debug_level;
 extern bool logcontrol;
 extern int umbilical;
@@ -77,5 +79,7 @@ extern void openlogger(const char *ident, logmode_t mode);
 extern void reopenlogger(void);
 extern void logger(debug_t level, int priority, const char *format, ...) ATTR_FORMAT(printf, 3, 4);
 extern void closelogger(void);
+
+}
 
 #endif

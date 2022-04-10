@@ -23,6 +23,10 @@
 #include "system.h"
 #include "ecdsa.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern bool tty;
 extern bool force;
 extern char line[4096];
@@ -53,5 +57,7 @@ extern bool sendline(int fd, const char *format, ...);
 extern bool recvline(int fd, char *line, size_t len);
 extern int check_port(const char *name);
 extern ecdsa_t *get_pubkey(FILE *f);
+
+}
 
 #endif

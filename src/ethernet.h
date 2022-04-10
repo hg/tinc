@@ -60,6 +60,10 @@
 #define ETH_P_MAX 0xFFFF
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_STRUCT_ETHER_HEADER
 PACKED(struct ether_header {
 	uint8_t ether_dhost[ETH_ALEN];
@@ -105,5 +109,7 @@ PACKED(struct ether_arp {
 #endif
 
 STATIC_ASSERT(sizeof(struct ether_arp) == 28, "ether_arp has incorrect size");
+
+}
 
 #endif

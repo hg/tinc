@@ -22,6 +22,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void ifconfig_dhcp(FILE *out);
 extern void ifconfig_dhcp6(FILE *out);
 extern void ifconfig_slaac(FILE *out);
@@ -29,5 +33,7 @@ extern void ifconfig_address(FILE *out, const char *value);
 extern void ifconfig_route(FILE *out, const char *value);
 extern void ifconfig_header(FILE *out);
 extern bool ifconfig_footer(FILE *out);
+
+}
 
 #endif

@@ -23,6 +23,10 @@
 
 #include "protocol.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum request_type {
 	REQ_INVALID = -1,
 	REQ_STOP = 0,
@@ -42,6 +46,8 @@ enum request_type {
 	REQ_PCAP,
 	REQ_LOG,
 };
+
+}
 
 #define TINC_CTL_VERSION_CURRENT 0
 

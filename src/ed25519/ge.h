@@ -3,7 +3,6 @@
 
 #include "fe.h"
 
-
 /*
 ge means group element.
 

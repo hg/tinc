@@ -23,6 +23,10 @@
 
 #include "net.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern bool hostnames;
 
 extern struct addrinfo *str2addrinfo(const char *address, const char *service, int socktype) ATTR_MALLOC;
@@ -35,5 +39,7 @@ extern void sockaddrunmap(sockaddr_t *sa);
 extern void sockaddrfree(sockaddr_t *sa);
 extern void sockaddrcpy(sockaddr_t *dest, const sockaddr_t *src);
 extern void sockaddr_setport(sockaddr_t *sa, const char *port);
+
+}
 
 #endif

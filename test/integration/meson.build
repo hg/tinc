@@ -29,7 +29,7 @@ endif
 
 exe_splice = executable(
   'splice',
-  sources: 'splice.c',
+  sources: 'splice.cc',
   dependencies: deps_common,
   implicit_include_directories: false,
   include_directories: inc_conf,

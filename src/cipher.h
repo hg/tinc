@@ -27,13 +27,16 @@
 #define CIPHER_MAX_KEY_SIZE 32
 
 #ifndef DISABLE_LEGACY
-
 #ifdef HAVE_OPENSSL
 #include "openssl/cipher.h"
 #elif HAVE_LIBGCRYPT
 #include "gcrypt/cipher.h"
 #else
 #error Incorrect cryptographic library, please reconfigure.
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 typedef struct cipher cipher_t;
@@ -53,6 +56,7 @@ extern bool cipher_decrypt(cipher_t *cipher, const void *indata, size_t inlen, v
 extern int cipher_get_nid(const cipher_t *cipher);
 extern bool cipher_active(const cipher_t *cipher);
 
+}
 #endif // DISABLE_LEGACY
 
 #endif // TINC_CIPHER_H

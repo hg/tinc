@@ -26,7 +26,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define _GETOPT_H 1
 
 #ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
+#endif
 #endif
 
 /* For communication from `getopt' to the caller.

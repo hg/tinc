@@ -21,6 +21,10 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct list_node_t {
 	struct list_node_t *prev;
 	struct list_node_t *next;
@@ -40,12 +44,12 @@ typedef struct list_t {
 
 	/* Callbacks */
 
-	list_action_t delete;
+	list_action_t release;
 } list_t;
 
 /* (De)constructors */
 
-extern list_t *list_alloc(list_action_t delete) ATTR_MALLOC;
+extern list_t *list_alloc(list_action_t release) ATTR_MALLOC;
 extern void list_free(list_t *list);
 extern list_node_t *list_alloc_node(void);
 extern void list_free_node(list_t *list, list_node_t *node);
@@ -86,6 +90,8 @@ extern void list_foreach_node(list_t *list, list_action_node_t action);
    CAUTION: while this construct supports deleting the current item,
    it does *not* support deleting *other* nodes while iterating on the list.
  */
-#define list_each(type, item, list) (type *item = (type *)1; item; item = NULL) for(list_node_t *node = (list)->head, *next; item = node ? node->data : NULL, next = node ? node->next : NULL, node; node = next)
+#define list_each(type, item, list) (type *item = (type *)1; item; item = NULL) for(list_node_t *node = (list)->head, *next; item = node ? reinterpret_cast<decltype(item)>(node->data) : NULL, next = node ? node->next : NULL, node; node = next)
+
+}
 
 #endif

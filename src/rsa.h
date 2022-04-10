@@ -22,6 +22,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef TINC_RSA_INTERNAL
 typedef struct rsa rsa_t;
 #endif
@@ -34,5 +38,7 @@ extern rsa_t *rsa_read_pem_private_key(FILE *fp) ATTR_MALLOC;
 extern size_t rsa_size(const rsa_t *rsa);
 extern bool rsa_public_encrypt(rsa_t *rsa, const void *in, size_t len, void *out) ATTR_WARN_UNUSED;
 extern bool rsa_private_decrypt(rsa_t *rsa, const void *in, size_t len, void *out) ATTR_WARN_UNUSED;
+
+}
 
 #endif

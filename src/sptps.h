@@ -36,6 +36,10 @@
 // Overhead for datagrams
 #define SPTPS_DATAGRAM_OVERHEAD 21
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef bool (*send_data_t)(void *handle, uint8_t type, const void *data, size_t len);
 typedef bool (*receive_record_t)(void *handle, uint8_t type, const void *data, uint16_t len);
 
@@ -93,5 +97,7 @@ extern bool sptps_send_record(sptps_t *s, uint8_t type, const void *data, uint16
 extern size_t sptps_receive_data(sptps_t *s, const void *data, size_t len);
 extern bool sptps_force_kex(sptps_t *s);
 extern bool sptps_verify_datagram(sptps_t *s, const void *data, size_t len);
+
+}
 
 #endif

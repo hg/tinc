@@ -20,8 +20,14 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const char *const BUILD_DATE;
 extern const char *const BUILD_TIME;
 extern const char *const BUILD_VERSION;
+
+}
 
 #endif

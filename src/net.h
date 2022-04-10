@@ -46,6 +46,10 @@
 
 #define MAXSOCKETS 8    /* Probably overkill... */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mac_t {
 	uint8_t x[6];
 } mac_t;
@@ -115,8 +119,14 @@ typedef struct listen_socket_t {
 	int priority;
 } listen_socket_t;
 
+}
+
 #include "conf.h"
 #include "list.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct outgoing_t {
 	struct node_t *node;
@@ -176,9 +186,15 @@ extern proxytype_t proxytype;
 extern char *scriptinterpreter;
 extern char *scriptextension;
 
+}
+
 /* Yes, very strange placement indeed, but otherwise the typedefs get all tangled up */
 #include "connection.h"
 #include "node.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern void retry_outgoing(outgoing_t *outgoing);
 extern void handle_incoming_vpn_data(void *data, int flags);
@@ -218,5 +234,7 @@ extern void tarpit(int fd);
 #ifndef HAVE_WINDOWS
 #define closesocket(s) close(s)
 #endif
+
+}
 
 #endif

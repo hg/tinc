@@ -1,11 +1,11 @@
 src_lib_crypto = files(
-  'cipher.c',
-  'crypto.c',
-  'digest.c',
-  'log.c',
-  'prf.c',
-  'rsa.c',
-  'rsagen.c',
+  'cipher.cc',
+  'crypto.cc',
+  'digest.cc',
+  'log.cc',
+  'prf.cc',
+  'rsa.cc',
+  'rsagen.cc',
 )
 
 # OpenBSD's 'OpenSSL' is actually LibreSSL. pkg-config on OpenBSD 7.0 reports

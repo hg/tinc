@@ -23,10 +23,14 @@
 
 #include "splay_tree.h"
 #include "cipher.h"
-#include "connection.h"
+#include "sptps.h"
 #include "digest.h"
 #include "event.h"
 #include "subnet.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef union node_status_t {
 	struct {
@@ -130,5 +134,7 @@ extern node_t *lookup_node_udp(const sockaddr_t *sa);
 extern bool dump_nodes(struct connection_t *c);
 extern bool dump_traffic(struct connection_t *c);
 extern void update_node_udp(node_t *n, const sockaddr_t *sa);
+
+}
 
 #endif

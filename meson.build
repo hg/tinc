@@ -1,9 +1,9 @@
-project('tinc', 'c',
+project('tinc', 'cpp',
   version: run_command([find_program('python3'), 'version.py', 'short'], check: true).stdout(),
   license: 'GPL-2.0-or-later',
   meson_version: '>=0.51',
   default_options: [
-    'c_std=c11',
+    'cpp_std=c++11',
     'warning_level=3',
     'buildtype=debugoptimized',
   ],
@@ -30,10 +30,10 @@ opt_zlib = get_option('zlib')
 
 meson_version = meson.version()
 
-cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+cpp_name = cpp.get_id()
 os_name = host_machine.system()
 cpu_family = host_machine.cpu_family()
-cc_name = cc.get_id()
 
 python = find_program('python3')
 if meson_version.version_compare('>=0.55')
@@ -47,7 +47,7 @@ if os_name == 'sunos'
   cc_defs += '-D__EXTENSIONS__'
 endif
 
-cc_flags = [cc_defs]
+cpp_flags = [cc_defs]
 ld_flags = []
 
 if opt_static.auto()
@@ -56,15 +56,15 @@ else
   static = opt_static.enabled()
 endif
 
-if static and cc_name != 'msvc'
+if static and cpp_name != 'msvc'
   ld_flags += '-static'
 endif
 
 if opt_harden
-  if cc_name == 'msvc'
+  if cpp_name == 'msvc'
     # Most of these flags are already ON by default in the latest version of MSVC.
     # Add anyway in case someone is building using an old toolchain.
-    cc_flags += ['/guard:cf', '/GS']
+    cpp_flags += ['/guard:cf', '/GS']
     ld_flags += [
       '/guard:cf',
       '/NXCOMPAT',
@@ -72,24 +72,20 @@ if opt_harden
       cpu_family.endswith('64') ? '/HIGHENTROPYVA' : '/SAFESEH',
     ]
   else
-    cc_flags += [
+    cpp_flags += [
       '-D_FORTIFY_SOURCE=2',
       '-fwrapv',
       '-fno-strict-overflow',
       '-Wreturn-type',
-      '-Wold-style-definition',
       '-Wmissing-declarations',
-      '-Wmissing-prototypes',
-      '-Wstrict-prototypes',
       '-Wredundant-decls',
-      '-Wbad-function-cast',
       '-Wwrite-strings',
       '-fdiagnostics-show-option',
       '-fstrict-aliasing',
       '-Wmissing-noreturn',
     ]
-    if cc_name == 'clang'
-      cc_flags += '-Qunused-arguments'
+    if cpp_name == 'clang'
+      cpp_flags += '-Qunused-arguments'
     endif
     ld_flags += ['-Wl,-z,relro', '-Wl,-z,now']
     if os_name == 'windows'
@@ -98,11 +94,11 @@ if opt_harden
   endif
 endif
 
-cc_flags = cc.get_supported_arguments(cc_flags)
-ld_flags = cc.get_supported_link_arguments(ld_flags)
+cpp_flags = cpp.get_supported_arguments(cpp_flags)
+ld_flags = cpp.get_supported_link_arguments(ld_flags)
 
-add_project_arguments(cc_flags, language: 'c')
-add_project_link_arguments(ld_flags, language: 'c')
+add_project_arguments(cpp_flags, language: 'cpp')
+add_project_link_arguments(ld_flags, language: 'cpp')
 
 build_root = meson.current_build_dir()
 src_root = meson.current_source_dir()

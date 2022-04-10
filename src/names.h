@@ -23,6 +23,10 @@
 
 #include "system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern char *confdir;
 extern char *confbase;
 extern bool confbase_given;
@@ -36,5 +40,7 @@ extern char *program_name;
 
 extern void make_names(bool daemon);
 extern void free_names(void);
+
+}
 
 #endif
