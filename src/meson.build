@@ -115,8 +115,10 @@ src_lib_common = [
   'dropin.c',
   'keys.c',
   'list.c',
+  'logger.c',
   'names.c',
   'netutl.c',
+  'random.c',
   'script.c',
   'splay_tree.c',
   'sptps.c',
@@ -124,7 +126,6 @@ src_lib_common = [
   'utils.c',
   'version.c',
   'xoshiro.c',
-  'logger.c',
 ]
 
 src_tinc = [

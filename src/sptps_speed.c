@@ -29,6 +29,7 @@
 #include "meta.h"
 #include "protocol.h"
 #include "sptps.h"
+#include "random.h"
 
 // Symbols necessary to link with logger.o
 bool send_request(struct connection_t *c, const char *msg, ...) {

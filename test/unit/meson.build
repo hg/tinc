@@ -27,6 +27,9 @@ tests = {
   'subnet': {
     'code': 'test_subnet.c',
   },
+  'random': {
+    'code': 'test_random.c',
+  },
   'protocol': {
     'code': 'test_protocol.c',
   },
