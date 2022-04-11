@@ -42,7 +42,7 @@ ecdh_t *ecdh_generate_public(void *pubkey) {
 
 bool ecdh_compute_shared(ecdh_t *ecdh, const void *pubkey, void *shared) {
 	ed25519_key_exchange(shared, pubkey, ecdh->private);
-	free(ecdh);
+	ecdh_free(ecdh);
 	return true;
 }
 

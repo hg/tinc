@@ -25,7 +25,7 @@
 
 extern bool hostnames;
 
-extern struct addrinfo *str2addrinfo(const char *address, const char *service, int socktype) ATTR_MALLOC;
+extern struct addrinfo *str2addrinfo(const char *address, const char *service, int socktype) ATTR_MALLOC ATTR_CONSTRUCTOR(freeaddrinfo);
 extern sockaddr_t str2sockaddr(const char *address, const char *port);
 extern void sockaddr2str(const sockaddr_t *sa, char **address, char **port);
 extern char *sockaddr2hostname(const sockaddr_t *sa) ATTR_MALLOC;

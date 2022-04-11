@@ -38,8 +38,8 @@
 
 typedef struct cipher cipher_t;
 
-extern cipher_t *cipher_alloc(void) ATTR_MALLOC;
-extern void cipher_free(cipher_t **cipher);
+extern void cipher_free(cipher_t *cipher);
+extern cipher_t *cipher_alloc(void) ATTR_MALLOC ATTR_CONSTRUCTOR(cipher_free);
 extern bool cipher_open_by_name(cipher_t *cipher, const char *name);
 extern bool cipher_open_by_nid(cipher_t *cipher, int nid);
 extern void cipher_close(cipher_t *cipher);

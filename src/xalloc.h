@@ -45,6 +45,7 @@ static inline void *xzalloc(size_t n) {
 	return p;
 }
 
+static inline void *xrealloc(void *p, size_t n);
 static inline void *xrealloc(void *p, size_t n) {
 	p = realloc(p, n);
 
@@ -66,6 +67,7 @@ static inline char *xstrdup(const char *s) {
 	return p;
 }
 
+static inline int xvasprintf(char **strp, const char *fmt, va_list ap) ATTR_FORMAT(printf, 2, 0);
 static inline int xvasprintf(char **strp, const char *fmt, va_list ap) {
 #ifdef HAVE_WINDOWS
 	char buf[1024];

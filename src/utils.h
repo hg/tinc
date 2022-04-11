@@ -65,8 +65,8 @@ static inline suseconds_t jitter(void) {
 
 extern bool check_id(const char *id);
 extern bool check_netname(const char *netname, bool strict);
-char *replace_name(const char *name);
+char *replace_name(const char *name) ATTR_MALLOC;
 
-extern FILE *fopenmask(const char *filename, const char *mode, mode_t perms);
+extern FILE *fopenmask(const char *filename, const char *mode, mode_t perms) ATTR_CONSTRUCTOR(fclose);
 
 #endif

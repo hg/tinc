@@ -95,10 +95,14 @@ void free_node(node_t *n) {
 	sockaddrfree(&n->address);
 
 #ifndef DISABLE_LEGACY
-	cipher_free(&n->incipher);
-	digest_free(&n->indigest);
-	cipher_free(&n->outcipher);
-	digest_free(&n->outdigest);
+	cipher_free(n->incipher);
+	n->incipher = NULL;
+	digest_free(n->indigest);
+	n->indigest = NULL;
+	cipher_free(n->outcipher);
+	n->outcipher = NULL;
+	digest_free(n->outdigest);
+	n->outdigest = NULL;
 #endif
 
 	ecdsa_free(n->ecdsa);
