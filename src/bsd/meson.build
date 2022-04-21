@@ -13,9 +13,8 @@ check_functions += [
 
 src_tincd += files('device.c')
 
-if opt_sandbox and os_name == 'openbsd'
-  src_lib_common += files('sandbox.c')
-  cdata.set('HAVE_SANDBOX', 1)
+if os_name == 'openbsd'
+  subdir('openbsd')
 endif
 
 if os_name == 'darwin'

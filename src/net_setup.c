@@ -67,6 +67,18 @@ bool disablebuggypeers;
 char *scriptinterpreter;
 char *scriptextension;
 
+char *proxy_exe(void) {
+	if(proxytype == PROXY_EXEC && proxyhost && *proxyhost) {
+		char *cmd = xstrdup(proxyhost);
+		char *tok = strtok(cmd, " \t\n\r\n");
+		char *result = tok ? xstrdup(tok) : NULL;
+		free(cmd);
+		return result;
+	} else {
+		return NULL;
+	}
+}
+
 bool node_read_ecdsa_public_key(node_t *n) {
 	if(ecdsa_active(n->ecdsa)) {
 		return true;

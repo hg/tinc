@@ -173,6 +173,8 @@ typedef enum proxytype_t {
 } proxytype_t;
 extern proxytype_t proxytype;
 
+char *proxy_exe(void);
+
 extern char *scriptinterpreter;
 extern char *scriptextension;
 
