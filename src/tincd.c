@@ -55,6 +55,7 @@
 #include "xalloc.h"
 #include "version.h"
 #include "random.h"
+#include "sandbox.h"
 
 /* If nonzero, display usage information and exit. */
 static bool show_help = false;
@@ -340,7 +341,12 @@ static bool drop_privs(void) {
 		}
 
 #endif
+
+#ifdef HAVE_SANDBOX
+	return sandbox_tincd();
+#else
 	return true;
+#endif
 }
 
 #ifdef HAVE_WINDOWS

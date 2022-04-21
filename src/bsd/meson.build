@@ -13,6 +13,11 @@ check_functions += [
 
 src_tincd += files('device.c')
 
+if opt_sandbox and os_name == 'openbsd'
+  src_lib_common += files('sandbox.c')
+  cdata.set('HAVE_SANDBOX', 1)
+endif
+
 if os_name == 'darwin'
   dep_tunemu = dependency('tunemu', required: opt_tunemu, static: static)
   dep_pcap = dependency('pcap', required: opt_tunemu, static: static)

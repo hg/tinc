@@ -41,6 +41,7 @@
 #include "subnet.h"
 #include "keys.h"
 #include "random.h"
+#include "sandbox.h"
 
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
@@ -3323,6 +3324,10 @@ int main(int argc, char *argv[]) {
 	random_init();
 	crypto_init();
 	prng_init();
+
+#ifdef HAVE_SANDBOX
+	sandbox_tinc();
+#endif
 
 	int result = run_command(argc, argv);
 
