@@ -27,6 +27,8 @@
 #include "script.h"
 #include "xalloc.h"
 
+bool enable_scripts = true;
+
 #ifdef HAVE_PUTENV
 static void unputenv(const char *p) {
 	const char *e = strchr(p, '=');

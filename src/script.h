@@ -29,6 +29,8 @@ typedef struct environment {
 	char **entries;
 } environment_t;
 
+extern bool enable_scripts;
+
 extern int environment_add(environment_t *env, const char *format, ...);
 extern void environment_update(environment_t *env, int pos, const char *format, ...);
 extern void environment_init(environment_t *env);

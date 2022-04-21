@@ -770,6 +770,26 @@ script is called, this is set to the invitation URL that has been created.
 .Pp
 Do not forget that under UNIX operating systems, you have to make the scripts executable, using the command
 .Nm chmod Li a+x Pa script .
+.Pp
+Here's the list of script configuration variables in alphabetical order.
+.Bl -tag -width indent
+.It Va DisableScripts Li = yes | no Pq no
+Completely disable script execution.
+This can be useful on operating systems where tinc supports sandboxing.
+With the option enabled, the daemon configures itself such that it cannot spawn new processes and is terminated if it tries to do so.
+This can help in deterring remote attackers if any vulnerabilities are discovered and exploited.
+.It Va ScriptsExtension Li = Ar .extension Pq empty
+File extension to use for tincd scripts. For example,
+.Ar .py ,
+.Ar .pl ,
+or
+.Ar .rb .
+Please note than it is simply concatenated with the script name and the dot is not added automatically.
+.It Va ScriptsInterpreter Li = Pa /path/to/interpreter Pq empty
+Used as an interpreter for scripts started by 
+.Nm tincd
+by prepending it to the start of the command line.
+If the variable is empty (which is the default), scripts are executed directly.
 .Sh FILES
 The most important files are:
 .Bl -tag -width indent
