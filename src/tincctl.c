@@ -1655,6 +1655,8 @@ const var_t variables[] = {
 	{"DeviceStandby", VAR_SERVER},
 	{"DeviceType", VAR_SERVER},
 	{"DirectOnly", VAR_SERVER | VAR_SAFE},
+	{"DisableBuggyPeers", VAR_SERVER},
+	{"DisableScripts", VAR_SERVER},
 	{"Ed25519PrivateKeyFile", VAR_SERVER},
 	{"ExperimentalProtocol", VAR_SERVER},
 	{"Forwarding", VAR_SERVER},

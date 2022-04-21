@@ -321,6 +321,11 @@ subnet_t *lookup_subnet_ipv6(const ipv6_t *address) {
 }
 
 void subnet_update(node_t *owner, subnet_t *subnet, bool up) {
+	if(!enable_scripts) {
+		logger(DEBUG_ALWAYS, LOG_NOTICE, "Not running subnet update scripts since those are disabled");
+		return;
+	}
+
 	char netstr[MAXNETSTR];
 	char *address, *port;
 	char empty[] = "";

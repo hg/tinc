@@ -3,9 +3,10 @@
 """Test that all tincd scripts execute in correct order and contain expected env vars."""
 
 import os
+import time
 import typing as T
 
-from testlib import check
+from testlib import check, cmd
 from testlib.log import log
 from testlib.proc import Tinc, Script, ScriptType, TincScript
 from testlib.test import Test
@@ -226,5 +227,50 @@ def run_tests(ctx: Test) -> None:
     test_stop_server(server, client)
 
 
+def run_disable_test(ctx: Test) -> None:
+    """Check that server scripts are not called with DisableScripts = yes."""
+    foo, bar = ctx.node(), ctx.node()
+    foo_stdin = f"""
+        init {foo}
+        set Port 0
+        set DeviceType dummy
+        set DisableScripts yes
+    """
+    foo.cmd(stdin=foo_stdin)
+
+    bar_stdin = f"""
+        init {bar}
+        set Port 0
+        set DeviceType dummy
+        set Address localhost
+    """
+    bar.cmd(stdin=bar_stdin)
+    foo_up = bar.add_script(foo.script_up)
+
+    stop_test = f"""
+    import signal
+    os.kill({os.getpid()}, signal.SIGTERM)
+    """
+    for scr in Script:
+        foo.add_script(scr, stop_test)
+
+    foo.cmd("set", "ConnectTo", bar.name)
+
+    bar.start()
+    bar.cmd("set", "Port", str(bar.port))
+
+    cmd.exchange(foo, bar)
+    foo.cmd("start")
+
+    foo_up.wait()
+    time.sleep(1)
+
+    bar.cmd("stop")
+    foo.cmd("stop")
+
+
 with Test("scripts test") as context:
     run_tests(context)
+
+with Test("disable scripts test") as context:
+    run_disable_test(context)

@@ -281,6 +281,16 @@ static bool fcopy(FILE *out, const char *filename) {
 	return true;
 }
 
+static void run_invitation_created_script(const char *url, const char *node, const char *invitation_file) {
+	environment_t env;
+	environment_init(&env);
+	environment_add(&env, "NODE=%s", node);
+	environment_add(&env, "INVITATION_FILE=%s", invitation_file);
+	environment_add(&env, "INVITATION_URL=%s", url);
+	execute_script("invitation-created", &env);
+	environment_exit(&env);
+}
+
 int cmd_invite(int argc, char *argv[]) {
 	if(argc < 2) {
 		fprintf(stderr, "Not enough arguments!\n");
@@ -531,14 +541,9 @@ int cmd_invite(int argc, char *argv[]) {
 	char *url;
 	xasprintf(&url, "%s/%s%s", address, hash, cookie);
 
-	// Call the inviation-created script
-	environment_t env;
-	environment_init(&env);
-	environment_add(&env, "NODE=%s", argv[1]);
-	environment_add(&env, "INVITATION_FILE=%s", filename);
-	environment_add(&env, "INVITATION_URL=%s", url);
-	execute_script("invitation-created", &env);
-	environment_exit(&env);
+	if(enable_scripts) {
+		run_invitation_created_script(url, argv[1], filename);
+	}
 
 	puts(url);
 	free(url);

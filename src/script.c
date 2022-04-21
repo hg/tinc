@@ -27,6 +27,8 @@
 #include "script.h"
 #include "xalloc.h"
 
+bool enable_scripts = true;
+
 #ifdef HAVE_PUTENV
 static void unputenv(const char *p) {
 	const char *e = strchr(p, '=');
@@ -141,6 +143,11 @@ void environment_exit(environment_t *env) {
 }
 
 bool execute_script(const char *name, environment_t *env) {
+	if(!enable_scripts) {
+		logger(DEBUG_ALWAYS, LOG_NOTICE, "Not running script %s as scripts are disabled", name);
+		return false;
+	}
+
 	char scriptname[PATH_MAX];
 	char *command;
 

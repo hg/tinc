@@ -242,6 +242,10 @@ bool setup_myself_reloadable(void) {
 		scriptextension = xstrdup("");
 	}
 
+	if(get_config_bool(lookup_config(&config_tree, "DisableScripts"), &enable_scripts)) {
+		enable_scripts = !enable_scripts;
+	}
+
 	char *proxy = NULL;
 
 	get_config_string(lookup_config(&config_tree, "Proxy"), &proxy);
@@ -634,18 +638,21 @@ void device_enable(void) {
 	}
 
 	/* Run tinc-up script to further initialize the tap interface */
-
-	environment_t env;
-	environment_init(&env);
-	execute_script("tinc-up", &env);
-	environment_exit(&env);
+	if(enable_scripts) {
+		environment_t env;
+		environment_init(&env);
+		execute_script("tinc-up", &env);
+		environment_exit(&env);
+	}
 }
 
 void device_disable(void) {
-	environment_t env;
-	environment_init(&env);
-	execute_script("tinc-down", &env);
-	environment_exit(&env);
+	if(enable_scripts) {
+		environment_t env;
+		environment_init(&env);
+		execute_script("tinc-down", &env);
+		environment_exit(&env);
+	}
 
 	if(devops.disable) {
 		devops.disable();

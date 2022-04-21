@@ -179,6 +179,24 @@ bool send_id(connection_t *c) {
 	return send_request(c, "%d %s %d.%d", ID, myself->connection->name, myself->connection->protocol_major, minor);
 }
 
+static void run_invitation_accepted_script(const connection_t *c) {
+	environment_t env;
+	char *address, *port;
+
+	environment_init(&env);
+	environment_add(&env, "NODE=%s", c->name);
+	sockaddr2str(&c->address, &address, &port);
+	environment_add(&env, "REMOTEADDRESS=%s", address);
+	environment_add(&env, "NAME=%s", myself->name);
+
+	free(address);
+	free(port);
+
+	execute_script("invitation-accepted", &env);
+
+	environment_exit(&env);
+}
+
 static bool finalize_invitation(connection_t *c, const char *data, uint16_t len) {
 	(void)len;
 
@@ -208,22 +226,9 @@ static bool finalize_invitation(connection_t *c, const char *data, uint16_t len)
 
 	logger(DEBUG_CONNECTIONS, LOG_INFO, "Key successfully received from %s (%s)", c->name, c->hostname);
 
-	// Call invitation-accepted script
-	environment_t env;
-	char *address, *port;
-
-	environment_init(&env);
-	environment_add(&env, "NODE=%s", c->name);
-	sockaddr2str(&c->address, &address, &port);
-	environment_add(&env, "REMOTEADDRESS=%s", address);
-	environment_add(&env, "NAME=%s", myself->name);
-
-	free(address);
-	free(port);
-
-	execute_script("invitation-accepted", &env);
-
-	environment_exit(&env);
+	if(enable_scripts) {
+		run_invitation_accepted_script(c);
+	}
 
 	sptps_send_record(&c->sptps, 2, data, 0);
 	return true;

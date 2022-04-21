@@ -206,6 +206,29 @@ static void sssp_bfs(void) {
 	list_free(todo_list);
 }
 
+static void run_scripts(const node_t *n) {
+	char *name;
+	char *address;
+	char *port;
+
+	environment_t env;
+	environment_init(&env);
+	environment_add(&env, "NODE=%s", n->name);
+	sockaddr2str(&n->address, &address, &port);
+	environment_add(&env, "REMOTEADDRESS=%s", address);
+	environment_add(&env, "REMOTEPORT=%s", port);
+
+	execute_script(n->status.reachable ? "host-up" : "host-down", &env);
+
+	xasprintf(&name, n->status.reachable ? "hosts/%s-up" : "hosts/%s-down", n->name);
+	execute_script(name, &env);
+
+	free(name);
+	free(address);
+	free(port);
+	environment_exit(&env);
+}
+
 static void check_reachability(void) {
 	/* Check reachability status. */
 
@@ -257,26 +280,9 @@ static void check_reachability(void) {
 
 			timeout_del(&n->udp_ping_timeout);
 
-			char *name;
-			char *address;
-			char *port;
-
-			environment_t env;
-			environment_init(&env);
-			environment_add(&env, "NODE=%s", n->name);
-			sockaddr2str(&n->address, &address, &port);
-			environment_add(&env, "REMOTEADDRESS=%s", address);
-			environment_add(&env, "REMOTEPORT=%s", port);
-
-			execute_script(n->status.reachable ? "host-up" : "host-down", &env);
-
-			xasprintf(&name, n->status.reachable ? "hosts/%s-up" : "hosts/%s-down", n->name);
-			execute_script(name, &env);
-
-			free(name);
-			free(address);
-			free(port);
-			environment_exit(&env);
+			if(enable_scripts) {
+				run_scripts(n);
+			}
 
 			subnet_update(n, NULL, n->status.reachable);
 
