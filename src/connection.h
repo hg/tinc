@@ -109,11 +109,7 @@ typedef struct connection_t {
 	sptps_t sptps;
 
 	int outmaclength;
-
-	union {
-		compression_level_t outcompression;
-		debug_t log_level; // used for REQ_LOG
-	};
+	debug_t log_level;              /* used for REQ_LOG */
 
 	uint8_t *hischallenge;          /* The challenge we sent to him */
 	uint8_t *mychallenge;           /* The challenge we received */
