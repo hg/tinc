@@ -10,6 +10,8 @@ find_tag() {
   git describe --always --tags --match='release-*' "$@"
 }
 
+export USER=${USER:-$(whoami)}
+
 spec=$HOME/rpmbuild/SPECS/tinc.spec
 version=$(find_tag HEAD | sed 's/-/_/g')
 version=${version//release_/}
@@ -22,6 +24,7 @@ rpmdev-setuptree
 cp "$(dirname "$0")/tinc.spec" "$spec"
 sed -i "s/__VERSION__/$version/" "$spec"
 
+chown -R $USER:$USER .
 git clean -dfx
 cp -a . ~/rpmbuild/BUILD
 

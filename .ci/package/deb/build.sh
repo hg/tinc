@@ -23,6 +23,7 @@ export EMAIL=ci@tinc-vpn.org
 os="$ID-${VERSION_ID:-unknown}"
 templates=$(dirname "$0")/debian
 
+chown -R $USER:$USER .
 git clean -dfx
 
 # get latest tag name
