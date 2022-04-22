@@ -19,6 +19,9 @@ static int teardown(void **state) {
 	free(proxypass);
 	proxypass = NULL;
 
+	free(proxyhost);
+	proxyhost = NULL;
+
 	return 0;
 }
 
@@ -388,6 +391,48 @@ static void test_create_socks_req_socks5_ipv6_password(void **state) {
 	assert_memory_equal(ref, anon_buf, sizeof(ref));
 }
 
+static void set_proxy_host(proxytype_t type, const char *host) {
+	proxytype = type;
+	free(proxyhost);
+	proxyhost = host ? xstrdup(host) : NULL;
+}
+
+static void test_proxy_exe_returns_null_on_wrong_proxytype(void **state) {
+	(void)state;
+
+	for(proxytype_t type = PROXY_NONE; type != PROXY_EXEC; ++type) {
+		set_proxy_host(type, "foobar");
+		assert_null(exec_proxy_path());
+	}
+}
+
+static void test_proxy_exe_returns_null_on_wrong_command(void **state) {
+	(void)state;
+
+	set_proxy_host(PROXY_EXEC, "");
+	assert_null(exec_proxy_path());
+
+	set_proxy_host(PROXY_EXEC, "   \t\r\n ");
+	assert_null(exec_proxy_path());
+
+	set_proxy_host(PROXY_EXEC, NULL);
+	assert_null(exec_proxy_path());
+}
+
+static void check_proxy(const char *input, const char *want) {
+	set_proxy_host(PROXY_EXEC, input);
+	char *get = exec_proxy_path();
+	assert_string_equal(want, get);
+	free(get);
+}
+
+static void test_proxy_exe_returns_valid_command(void **state) {
+	(void)state;
+
+	check_proxy("foo bar baz", "foo");
+	check_proxy(" \n\r\t dir/frobnicator\\1.4-2 | tee -a --moo 9000 ", "dir/frobnicator\\1.4-2");
+}
+
 int main(void) {
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test_teardown(test_socks_req_len_socks4_ipv4, teardown),
@@ -425,6 +470,10 @@ int main(void) {
 		cmocka_unit_test_teardown(test_create_socks_req_socks5_ipv4_password, teardown),
 		cmocka_unit_test_teardown(test_create_socks_req_socks5_ipv6_anon, teardown),
 		cmocka_unit_test_teardown(test_create_socks_req_socks5_ipv6_password, teardown),
+
+		cmocka_unit_test_teardown(test_proxy_exe_returns_null_on_wrong_command, teardown),
+		cmocka_unit_test_teardown(test_proxy_exe_returns_null_on_wrong_proxytype, teardown),
+		cmocka_unit_test_teardown(test_proxy_exe_returns_valid_command, teardown),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

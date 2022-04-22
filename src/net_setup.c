@@ -230,7 +230,7 @@ char *get_name(void) {
 	return returned_name;
 }
 
-bool setup_myself_reloadable(void) {
+bool setup_myself_reloadable(bool initial) {
 	free(scriptinterpreter);
 	scriptinterpreter = NULL;
 
@@ -269,6 +269,17 @@ bool setup_myself_reloadable(void) {
 			proxytype = PROXY_HTTP;
 		} else if(!strcasecmp(proxy, "exec")) {
 			proxytype = PROXY_EXEC;
+
+			if(!initial) {
+				logger(DEBUG_ALWAYS, LOG_WARNING, "exec proxy may fail to work until tincd is restarted");
+			}
+
+#ifdef HAVE_SANDBOX
+			else if(!enable_scripts) {
+				logger(DEBUG_ALWAYS, LOG_NOTICE, "exec proxy is used, this will lessen sandboxing protection");
+			}
+
+#endif
 		} else {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Unknown proxy type %s!", proxy);
 			free_string(proxy);
@@ -839,7 +850,7 @@ static bool setup_myself(void) {
 
 	/* Check some options */
 
-	if(!setup_myself_reloadable()) {
+	if(!setup_myself_reloadable(true)) {
 		return false;
 	}
 

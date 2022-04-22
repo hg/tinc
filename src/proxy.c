@@ -2,6 +2,7 @@
 
 #include "logger.h"
 #include "proxy.h"
+#include "xalloc.h"
 
 typedef enum socks5_auth_method_t {
 	AUTH_ANONYMOUS = 0,
@@ -283,3 +284,22 @@ size_t create_socks_req(proxytype_t type, void *buf, const sockaddr_t *sa) {
 		abort();
 	}
 }
+
+char *exec_proxy_path(void) {
+	if(proxytype == PROXY_EXEC && proxyhost && *proxyhost) {
+		char *command = xstrdup(proxyhost);
+
+		// Find the first non-whitespace token
+		const char *exe = strtok(command, " \t\r\n");
+
+		if(exe) { // If found, remove whitespace prefix and return the path
+			memmove(command, exe, strlen(exe) + 1);
+			return command;
+		}
+
+		free(command);
+	}
+
+	return NULL;
+}
+

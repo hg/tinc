@@ -110,4 +110,8 @@ extern size_t create_socks_req(proxytype_t type, void *req, const sockaddr_t *sa
 // Check that SOCKS server provided a valid response and permitted further requests
 extern bool check_socks_resp(proxytype_t type, const void *buf, size_t len);
 
+// Extract the name of the executable to run the EXEC proxy (if any).
+char *exec_proxy_path(void);
+
 #endif // TINC_PROXY_H
+

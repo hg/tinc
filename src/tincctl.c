@@ -41,6 +41,7 @@
 #include "subnet.h"
 #include "keys.h"
 #include "random.h"
+#include "sandbox.h"
 #include "pidfile.h"
 
 #ifndef MSG_NOSIGNAL
@@ -102,6 +103,9 @@ static void version(void) {
 #endif
 #ifndef DISABLE_LEGACY
 	        " legacy_protocol"
+#endif
+#ifdef HAVE_SANDBOX
+	        " sandbox"
 #endif
 	        "\n\n"
 	        "Copyright (C) 1998-2018 Ivo Timmermans, Guus Sliepen and others.\n"
@@ -3333,6 +3337,10 @@ int main(int argc, char *argv[]) {
 	random_init();
 	crypto_init();
 	prng_init();
+
+#ifdef HAVE_SANDBOX
+	sandbox_tinc();
+#endif
 
 	int result = run_command(argc, argv);
 
