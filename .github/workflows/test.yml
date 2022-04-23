@@ -102,6 +102,11 @@ jobs:
   sanitizer:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    container:
+      image: debian:testing
+      options: --privileged
+      env:
+        CI: 1
     strategy:
       fail-fast: false
       matrix:
@@ -117,22 +122,25 @@ jobs:
         uses: actions/checkout@v1
 
       - name: Install deps
-        run: sudo sh .ci/deps.sh
+        run: bash .ci/deps.sh
 
-      - name: Run tests with OpenSSL 3
-        run: bash .ci/sanitizers/run.sh openssl3
+      - name: Prepare the system
+        run: bash .ci/test/prepare.sh
+
+      - name: Sanitize tests with OpenSSL 3
+        run: sudo -u build CI=1 SANITIZER=$SANITIZER bash .ci/sanitizers/run.sh openssl3
         if: always()
 
       - name: Sanitize tests with default settings
-        run: bash .ci/sanitizers/run.sh default
+        run: sudo -u build CI=1 SANITIZER=$SANITIZER bash .ci/sanitizers/run.sh default
         if: always()
 
       - name: Sanitize tests without legacy protocol
-        run: bash .ci/sanitizers/run.sh nolegacy
+        run: sudo -u build CI=1 SANITIZER=$SANITIZER bash .ci/sanitizers/run.sh nolegacy
         if: always()
 
-      - name: Run tests with libgcrypt
-        run: bash .ci/sanitizers/run.sh gcrypt
+      - name: Sanitize tests with libgcrypt
+        run: sudo -u build CI=1 SANITIZER=$SANITIZER bash .ci/sanitizers/run.sh gcrypt
         if: always()
 
       - name: Upload test results

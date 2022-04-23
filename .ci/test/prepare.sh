@@ -15,5 +15,8 @@ visudo --check
 
 if [ -n "${HOST:-}" ]; then
   update-binfmts --enable
+fi
+
+if [ -n "${HOST:-}${SANITIZER:-}" ]; then
   rm -f /dev/net/tun
 fi

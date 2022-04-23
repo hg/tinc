@@ -4,7 +4,7 @@ set -euo pipefail
 
 dir=$(realpath "$(dirname "$0")")
 
-logs="$GITHUB_WORKSPACE/sanitizer"
+logs="$PWD/sanitizer"
 
 case "$SANITIZER" in
 undefined)
@@ -29,7 +29,7 @@ thread)
   ;;
 esac
 
-export CC='clang-12'
+export CC='clang'
 export CPPFLAGS='-DDEBUG'
 export CFLAGS="-O0 -g -fsanitize=$SANITIZER -fno-omit-frame-pointer -fno-common -fsanitize-blacklist=$dir/ignore.txt $flags"
 

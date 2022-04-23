@@ -26,7 +26,7 @@ deps_linux_debian_linux() {
   apt-get update
 
   apt-get install -y \
-    binutils make gcc \
+    binutils make \
     zlib1g-dev:"$HOST" \
     libssl-dev:"$HOST" \
     liblzo2-dev:"$HOST" \
@@ -38,6 +38,12 @@ deps_linux_debian_linux() {
     libvdeplug-dev:"$HOST" \
     libcmocka-dev:"$HOST" \
     "$@"
+
+  if [ -n "${SANITIZER:-}" ]; then
+    apt-get install -y clang
+  else
+    apt-get install -y gcc
+  fi
 
   if [ -n "$HOST" ]; then
     apt-get install -y crossbuild-essential-"$HOST" qemu-user
