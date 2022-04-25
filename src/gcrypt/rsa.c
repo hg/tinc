@@ -72,7 +72,7 @@ static size_t ber_read_len(unsigned char **p, size_t *buflen) {
 		}
 
 		for(; len; --len) {
-			result = (size_t)(result << 8);
+			result = (size_t)((result << 8) & SIZE_MAX);
 			result |= *(*p)++;
 			(*buflen)--;
 		}

@@ -8,7 +8,7 @@ logs="$GITHUB_WORKSPACE/sanitizer"
 
 case "$SANITIZER" in
 undefined)
-  flags='-fsanitize=integer -fsanitize=nullability -fno-sanitize=unsigned-integer-overflow'
+  flags='-fsanitize=integer -fsanitize=nullability'
   export UBSAN_OPTIONS="log_path=$logs/ubsan:print_stacktrace=1"
   ;;
 
