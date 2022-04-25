@@ -76,6 +76,11 @@ static bool do_chroot = false;
 static const char *switchuser = NULL;
 #endif
 
+#ifdef HAVE_SANDBOX
+/* Sandbox the process after initialization finishes */
+static bool do_sandbox = true;
+#endif
+
 char **g_argv;                  /* a copy of the cmdline arguments */
 
 static int status = 1;
@@ -98,6 +103,7 @@ typedef enum tincd_option_t {
 	OPT_NO_SECURITY =  3,
 	OPT_LOGFILE     =  4,
 	OPT_PIDFILE     =  5,
+	OPT_NO_SANDBOX  =  6,
 } tincd_option_t;
 
 static struct option const long_options[] = {
@@ -115,6 +121,7 @@ static struct option const long_options[] = {
 	{"syslog",          no_argument,       NULL, OPT_SYSLOG},
 	{"pidfile",         required_argument, NULL, OPT_PIDFILE},
 	{"option",          required_argument, NULL, OPT_OPTION},
+	{"no-sandbox",      no_argument,       NULL, OPT_NO_SANDBOX},
 	{NULL,              0,                 NULL, 0},
 };
 
@@ -146,6 +153,9 @@ static void usage(bool status) {
 #ifndef HAVE_WINDOWS
 		        "  -R, --chroot                  chroot to NET dir at startup.\n"
 		        "  -U, --user=USER               setuid to given USER at startup.\n"
+#endif
+#ifdef HAVE_SANDBOX
+		        "      --no-sandbox              Disable process sandboxing.\n"
 #endif
 		        "      --help                    Display this help and exit.\n"
 		        "      --version                 Output version information and exit.\n"
@@ -267,6 +277,13 @@ static bool parse_options(int argc, char **argv) {
 			pidfilename = xstrdup(optarg);
 			break;
 
+#ifdef HAVE_SANDBOX
+
+		case OPT_NO_SANDBOX: /* disable sandboxing */
+			do_sandbox = false;
+			break;
+#endif
+
 		case OPT_BAD_OPTION: /* wrong options */
 			usage(true);
 			goto exit_fail;
@@ -363,10 +380,14 @@ static bool drop_privs(void) {
 #endif
 
 #ifdef HAVE_SANDBOX
-	return sandbox_tincd();
-#else
-	return true;
+
+	if(do_sandbox) {
+		return sandbox_tincd();
+	}
+
+	logger(DEBUG_ALWAYS, LOG_NOTICE, "Sandbox is disabled through a command-line option");
 #endif
+	return true;
 }
 
 #ifdef HAVE_WINDOWS
