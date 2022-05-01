@@ -85,6 +85,7 @@ check_functions = [
   'explicit_bzero',
   'explicit_memset',
   'fchmod',
+  'getentropy',
   'gettimeofday',
   'memset_s',
   'mlockall',

@@ -5,10 +5,7 @@ check_headers += [
   'sys/random.h',
 ]
 
-check_functions += [
-  'recvmmsg',
-  'getrandom',
-]
+check_functions += 'recvmmsg'
 
 src_tincd += files('device.c')
 
