@@ -7,7 +7,7 @@ deps_linux_alpine() {
 
   apk add \
     git binutils meson pkgconf gcc linux-headers shadow sudo libgcrypt-dev texinfo gzip \
-    openssl-dev zlib-dev lzo-dev ncurses-dev readline-dev musl-dev lz4-dev vde2-dev cmocka-dev
+    openssl-dev zlib-dev lzo-dev ncurses-dev readline-dev musl-dev lz4-dev vde2-dev cmocka-dev libseccomp-dev
 }
 
 deps_linux_debian_mingw() {
@@ -42,6 +42,7 @@ deps_linux_debian_linux() {
   if [ -n "$HOST" ]; then
     apt-get install -y crossbuild-essential-"$HOST" qemu-user
   else
+    apt-get install -y libseccomp-dev
     linux_openssl3
   fi
 }
@@ -87,7 +88,8 @@ deps_linux_rhel() {
 
   yum install -y \
     git binutils make meson pkgconf gcc sudo texinfo-tex systemd perl-IPC-Cmd \
-    lzo-devel zlib-devel lz4-devel ncurses-devel readline-devel libgcrypt-devel "$@"
+    lzo-devel zlib-devel lz4-devel ncurses-devel readline-devel libgcrypt-devel libseccomp-devel \
+    "$@"
 
   if yum info openssl11-devel; then
     yum install -y openssl11-devel
