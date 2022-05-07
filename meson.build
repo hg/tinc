@@ -52,8 +52,11 @@ cc_flags = [cc_defs]
 ld_flags = []
 
 if cc_name != 'msvc'
+  if cc_name == 'clang'
+    cc_flags += '-Qunused-arguments'
+  endif
+
   cc_flags += [
-    '-Qunused-arguments',
     '-Wbad-function-cast',
     '-Wduplicated-branches',
     '-Wduplicated-cond',
