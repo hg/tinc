@@ -294,4 +294,12 @@
 #define SLASH "/"
 #endif
 
+#ifdef __SANITIZE_ADDRESS__
+#define HAVE_SANITIZER_ADDRESS 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define HAVE_SANITIZER_ADDRESS 1
+#endif
+#endif
+
 #endif

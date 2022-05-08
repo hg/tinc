@@ -273,6 +273,12 @@ void openlogger(const char *ident, logmode_t mode) {
 	logident = ident;
 	logmode = mode;
 
+	// Let sandboxing code close access to one more unneeded path
+	if(mode != LOGMODE_FILE) {
+		free(logfilename);
+		logfilename = NULL;
+	}
+
 	switch(mode) {
 	case LOGMODE_STDERR:
 		logpid = getpid();

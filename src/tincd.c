@@ -361,6 +361,21 @@ static bool read_sandbox_level(void) {
 	return true;
 }
 
+static void create_conf_dir(const char *name, mode_t mode) {
+	assert(confbase);
+
+	char path[PATH_MAX];
+	snprintf(path, sizeof(path), "%s/%s", confbase, name);
+
+	if(mkdir(path, mode)) {
+		if(errno == EEXIST) {
+			chmod(path, mode);
+		} else {
+			logger(DEBUG_ALWAYS, LOG_ERR, "Could not create config subdirectory %s: %s", path, strerror(errno));
+		}
+	}
+}
+
 static bool drop_privs(void) {
 #ifndef HAVE_WINDOWS
 	uid_t uid = 0;
@@ -411,7 +426,11 @@ static bool drop_privs(void) {
 			return false;
 		}
 
-#endif
+#endif // HAVE_WINDOWS
+
+	create_conf_dir("cache", 0755);
+	create_conf_dir("hosts", 0755);
+	create_conf_dir("invitations", 0700);
 
 	return sandbox_enter();
 }

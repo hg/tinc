@@ -493,7 +493,7 @@ reordering. Setting this to zero will disable replay tracking completely and
 pass all traffic, but leaves tinc vulnerable to replay-based attacks on your
 traffic.
 .It Va Sandbox Li = off | normal | high Po normal Pc
-Use process sandbox on some operating systems where it is supported (currently that's OpenBSD).
+Use process sandbox on some operating systems where it is supported (currently that's Linux and OpenBSD).
 Using this directive on other operating systems with levels higher than
 .Ar off
 will cause
@@ -519,6 +519,7 @@ scripts or
 proxies, and configuration reloading may not work for some variables, forcing you to restart
 .Nm tincd
 to apply new settings.
+On Linux, scripts written in languages that employ runtime JIT compilation (or call executables written in such languages, such as C#, Java, or JavaScript) may not work reliably, or at all.
 .It high
 Fully disables
 .Ar exec

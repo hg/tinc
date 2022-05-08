@@ -283,6 +283,7 @@ bool setup_myself_reloadable(void) {
 				proxytype = PROXY_EXEC;
 			} else {
 				logger(DEBUG_ALWAYS, LOG_ERR, "Cannot use exec proxies with current sandbox level.");
+				free_string(proxy);
 				return false;
 			}
 		} else {
