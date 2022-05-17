@@ -167,7 +167,7 @@ static void event_kqueue_init(void) {
 	if(!kq) {
 		kq = kqueue();
 
-		if(kq == -1) {
+		if(kq < 0) {
 			logger(DEBUG_ALWAYS, LOG_EMERG, "Could not create kqueue: %s", strerror(errno));
 			abort();
 		}
@@ -195,6 +195,9 @@ void io_set(io_t *io, int flags) {
 		return;
 	}
 
+#ifdef HAVE_KQUEUE
+	const int oldflags = io->flags;
+#endif
 	io->flags = flags;
 
 	if(io->fd == -1) {
@@ -228,22 +231,30 @@ void io_set(io_t *io, int flags) {
 #endif
 
 #ifdef HAVE_KQUEUE
+	// The code below is a bit contrived, but it speeds up iperf3 throughput by 8%
+	// compared to the cleanest version where we do more (unnecessary) syscalls.
+
 	struct kevent evt = {
 		.ident = io->fd,
 		.flags = EV_DELETE,
 	};
 
-	if(!(flags & IO_READ)) {
+	const bool did_read = oldflags & IO_READ;
+	const bool did_write = oldflags & IO_WRITE;
+	const bool will_read = flags & IO_READ;
+	const bool will_write = flags & IO_WRITE;
+
+	if(did_read && !will_read) {
 		evt.filter = EVFILT_READ;
 		do_kevent(&evt);
 	}
 
-	if(!(flags & IO_WRITE)) {
+	if(did_write && !will_write) {
 		evt.filter = EVFILT_WRITE;
 		do_kevent(&evt);
 	}
 
-	if(!flags) {
+	if(!evt.filter) {
 		io_tree.generation++;
 		return;
 	}
@@ -251,12 +262,12 @@ void io_set(io_t *io, int flags) {
 	evt.flags = EV_ADD;
 	evt.udata = io;
 
-	if(flags & IO_READ) {
+	if(!did_read && will_read) {
 		evt.filter = EVFILT_READ;
 		do_kevent(&evt);
 	}
 
-	if(flags & IO_WRITE) {
+	if(!did_write && will_write) {
 		evt.filter = EVFILT_WRITE;
 		do_kevent(&evt);
 	}
