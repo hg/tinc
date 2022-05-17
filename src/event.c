@@ -21,8 +21,14 @@
 
 #include <assert.h>
 
-#ifdef HAVE_SYS_EPOLL_H
-#include <sys/epoll.h>
+#if defined(HAVE_SYS_EPOLL_H)
+#  include <sys/epoll.h>
+#  define HAVE_EPOLL 1
+#elif defined(HAVE_SYS_EVENT_H)
+#  include <sys/event.h>
+#  define HAVE_KQUEUE 1
+#else
+#  define HAVE_SELECT 1
 #endif
 
 #include "event.h"
@@ -32,9 +38,15 @@
 struct timeval now;
 #ifndef HAVE_WINDOWS
 
-#ifdef HAVE_SYS_EPOLL_H
+#ifdef HAVE_EPOLL
 static int epollset = 0;
-#else
+#endif
+
+#ifdef HAVE_KQUEUE
+static int kq = 0;
+#endif
+
+#ifdef HAVE_SELECT
 static fd_set readfds;
 static fd_set writefds;
 #endif
@@ -46,14 +58,16 @@ static DWORD event_count = 0;
 #endif
 static bool running;
 
-#ifdef HAVE_SYS_EPOLL_H
-static inline int event_epoll_init(void) {
+#ifdef HAVE_EPOLL
+static void event_epoll_init(void) {
 	/* NOTE: 1024 limit is only used on ancient (pre 2.6.27) kernels.
 	        Decent kernels will ignore this value making it unlimited.
 	        epoll_create1 might be better, but these kernels would not be supported
 	        in that case.
 	*/
-	return epoll_create(1024);
+	if(!epollset) {
+		epollset = epoll_create(1024);
+	}
 }
 #endif
 
@@ -132,7 +146,7 @@ void io_add(io_t *io, io_cb_t cb, void *data, int fd, int flags) {
 
 	io_set(io, flags);
 
-#ifndef HAVE_SYS_EPOLL_H
+#ifdef HAVE_SELECT
 
 	if(!splay_insert_node(&io_tree, &io->node)) {
 		abort();
@@ -148,13 +162,33 @@ void io_add_event(io_t *io, io_cb_t cb, void *data, WSAEVENT event) {
 }
 #endif
 
-void io_set(io_t *io, int flags) {
-#ifdef HAVE_SYS_EPOLL_H
+#ifdef HAVE_KQUEUE
+static void event_kqueue_init(void) {
+	if(!kq) {
+		kq = kqueue();
 
-	if(!epollset) {
-		epollset = event_epoll_init();
+		if(kq == -1) {
+			logger(DEBUG_ALWAYS, LOG_EMERG, "Could not create kqueue: %s", strerror(errno));
+			abort();
+		}
 	}
+}
 
+static void do_kevent(const struct kevent *evt) {
+	if(kevent(kq, evt, 1, NULL, 0, NULL) < 0 && errno != ENOENT && errno != EINTR) {
+		logger(DEBUG_ALWAYS, LOG_EMERG, "kevent failed: %s", strerror(errno));
+		abort();
+	}
+}
+#endif
+
+void io_set(io_t *io, int flags) {
+#ifdef HAVE_EPOLL
+	event_epoll_init();
+#endif
+
+#ifdef HAVE_KQUEUE
+	event_kqueue_init();
 #endif
 
 	if(flags == io->flags) {
@@ -168,7 +202,7 @@ void io_set(io_t *io, int flags) {
 	}
 
 #ifndef HAVE_WINDOWS
-#ifdef HAVE_SYS_EPOLL_H
+#ifdef HAVE_EPOLL
 	epoll_ctl(epollset, EPOLL_CTL_DEL, io->fd, NULL);
 
 	struct epoll_event ev = {
@@ -191,7 +225,45 @@ void io_set(io_t *io, int flags) {
 		perror("epoll_ctl_add");
 	}
 
-#else
+#endif
+
+#ifdef HAVE_KQUEUE
+	struct kevent evt = {
+		.ident = io->fd,
+		.flags = EV_DELETE,
+	};
+
+	if(!(flags & IO_READ)) {
+		evt.filter = EVFILT_READ;
+		do_kevent(&evt);
+	}
+
+	if(!(flags & IO_WRITE)) {
+		evt.filter = EVFILT_WRITE;
+		do_kevent(&evt);
+	}
+
+	if(!flags) {
+		io_tree.generation++;
+		return;
+	}
+
+	evt.flags = EV_ADD;
+	evt.udata = io;
+
+	if(flags & IO_READ) {
+		evt.filter = EVFILT_READ;
+		do_kevent(&evt);
+	}
+
+	if(flags & IO_WRITE) {
+		evt.filter = EVFILT_WRITE;
+		do_kevent(&evt);
+	}
+
+#endif
+
+#ifdef HAVE_SELECT
 
 	if(flags & IO_READ) {
 		FD_SET(io->fd, &readfds);
@@ -206,6 +278,7 @@ void io_set(io_t *io, int flags) {
 	}
 
 #endif
+
 #else
 	long events = 0;
 
@@ -239,7 +312,7 @@ void io_del(io_t *io) {
 	event_count--;
 #endif
 
-#ifndef HAVE_SYS_EPOLL_H
+#if HAVE_SELECT
 	splay_unlink_node(&io_tree, &io->node);
 #endif
 	io->cb = NULL;
@@ -381,13 +454,15 @@ bool event_loop(void) {
 
 #ifndef HAVE_WINDOWS
 
-#ifdef HAVE_SYS_EPOLL_H
+#ifdef HAVE_EPOLL
+	event_epoll_init();
+#endif
 
-	if(!epollset) {
-		epollset = event_epoll_init();
-	}
+#ifdef HAVE_KQUEUE
+	event_kqueue_init();
+#endif
 
-#else
+#ifdef HAVE_SELECT
 	fd_set readable;
 	fd_set writable;
 #endif
@@ -395,22 +470,35 @@ bool event_loop(void) {
 	while(running) {
 		struct timeval diff;
 		struct timeval *tv = timeout_execute(&diff);
-#ifndef HAVE_SYS_EPOLL_H
+
+#ifdef HAVE_SELECT
 		memcpy(&readable, &readfds, sizeof(readable));
 		memcpy(&writable, &writefds, sizeof(writable));
 #endif
 
-
-#ifdef HAVE_SYS_EPOLL_H
-		struct epoll_event events[EPOLL_MAX_EVENTS_PER_LOOP];
+#ifdef HAVE_EPOLL
+		struct epoll_event events[MAX_EVENTS_PER_LOOP];
 		long timeout = (tv->tv_sec * 1000) + (tv->tv_usec / 1000);
 
 		if(timeout > INT_MAX) {
 			timeout = INT_MAX;
 		}
 
-		int n = epoll_wait(epollset, events, EPOLL_MAX_EVENTS_PER_LOOP, (int)timeout);
-#else
+		int n = epoll_wait(epollset, events, MAX_EVENTS_PER_LOOP, (int)timeout);
+#endif
+
+#ifdef HAVE_KQUEUE
+		struct kevent events[MAX_EVENTS_PER_LOOP];
+
+		const struct timespec ts = {
+			.tv_sec = tv->tv_sec,
+			.tv_nsec = tv->tv_usec * 1000,
+		};
+
+		int n = kevent(kq, NULL, 0, events, MAX_EVENTS_PER_LOOP, &ts);
+#endif
+
+#ifdef HAVE_SELECT
 		int maxfds =  0;
 
 		if(io_tree.tail) {
@@ -436,7 +524,7 @@ bool event_loop(void) {
 		unsigned int curgen = io_tree.generation;
 
 
-#ifdef HAVE_SYS_EPOLL_H
+#ifdef HAVE_EPOLL
 
 		for(int i = 0; i < n; i++) {
 			io_t *io = events[i].data.ptr;
@@ -458,7 +546,30 @@ bool event_loop(void) {
 			}
 		}
 
-#else
+#endif
+
+#ifdef HAVE_KQUEUE
+
+		for(int i = 0; i < n; i++) {
+			const struct kevent *evt = &events[i];
+			const io_t *io = evt->udata;
+
+			if(evt->filter == EVFILT_WRITE) {
+				io->cb(io->data, IO_WRITE);
+			} else if(evt->filter == EVFILT_READ) {
+				io->cb(io->data, IO_READ);
+			} else {
+				abort();
+			}
+
+			if(curgen != io_tree.generation) {
+				break;
+			}
+		}
+
+#endif
+
+#ifdef HAVE_SELECT
 
 		for splay_each(io_t, io, &io_tree) {
 			if(FD_ISSET(io->fd, &writable)) {

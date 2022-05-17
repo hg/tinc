@@ -4,6 +4,7 @@ check_headers += [
   'net/if_utun.h',
   'net/tap/if_tap.h',
   'net/tun/if_tun.h',
+  'sys/event.h',
 ]
 
 check_functions += [
