@@ -193,15 +193,7 @@ static void udp_probe_h(node_t *n, vpn_packet_t *packet, length_t len) {
 	/* It's a valid reply: now we know bidirectional communication
 	   is possible using the address and socket that the reply
 	   packet used. */
-	if(!n->status.udp_confirmed) {
-		n->status.udp_confirmed = true;
-
-		if(!n->address_cache) {
-			n->address_cache = open_address_cache(n);
-		}
-
-		reset_address_cache(n->address_cache, &n->address);
-	}
+	n->status.udp_confirmed = true;
 
 	// Reset the UDP ping timer.
 

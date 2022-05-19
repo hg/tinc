@@ -1,4 +1,5 @@
 tests = [
+  'address_cache.py',
   'basic.py',
   'command_fsck.py',
   'commandline.py',
