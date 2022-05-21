@@ -8,8 +8,6 @@ Public domain.
 
 #include "chacha.h"
 
-typedef struct chacha_ctx chacha_ctx;
-
 #define U8C(v) (v##U)
 #define U32C(v) (v##U)
 
@@ -79,8 +77,7 @@ void chacha_ivsetup(chacha_ctx *x, const uint8_t *iv, const uint8_t *counter) {
 	x->input[15] = U8TO32_LITTLE(iv + 4);
 }
 
-void
-chacha_encrypt_bytes(chacha_ctx *x, const uint8_t *m, uint8_t *c, uint32_t bytes) {
+static void chacha_encrypt_bytes_generic(chacha_ctx *x, const uint8_t *m, uint8_t *c, uint32_t bytes) {
 	uint32_t x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
 	uint32_t j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14, j15;
 	uint8_t *ctarget = NULL;
@@ -222,3 +219,26 @@ chacha_encrypt_bytes(chacha_ctx *x, const uint8_t *m, uint8_t *c, uint32_t bytes
 		m += 64;
 	}
 }
+
+#ifdef HAVE_OPTIMIZED_CHACHA
+__attribute__((unused))
+static chacha_encrypt_bytes_t *(resolve_chacha_encrypt_bytes)(void) {
+	__builtin_cpu_init();
+
+	if(__builtin_cpu_supports("avx2")) {
+		return chacha_encrypt_bytes_avx2;
+	}
+
+	if(__builtin_cpu_supports("sse4.1")) {
+		return chacha_encrypt_bytes_sse4;
+	}
+
+	return chacha_encrypt_bytes_generic;
+}
+
+chacha_encrypt_bytes_t chacha_encrypt_bytes __attribute__((ifunc("resolve_chacha_encrypt_bytes")));
+#else
+void chacha_encrypt_bytes(struct chacha_ctx *x, const uint8_t *m, uint8_t *c, uint32_t bytes) {
+	chacha_encrypt_bytes_generic(x, m, c, bytes);
+}
+#endif

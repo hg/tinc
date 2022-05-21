@@ -18,6 +18,28 @@ foreach attr : ['malloc', 'nonnull', 'warn_unused_result', 'packed', 'format']
   endif
 endforeach
 
+# Other architectures are not supported (yet?)
+if cpu_family in ['x86', 'x86_64'] and cc.compiles('''
+  #include <immintrin.h>
+
+  static void foobar_avx2(void) {}
+  static void foobar_default(void) {}
+
+  static void (*resolve_foobar(void))(void) {
+      __builtin_cpu_init ();
+      if (__builtin_cpu_supports("avx2")) {
+          return foobar_avx2;
+      } else {
+          return foobar_default;
+      }
+  }
+
+  void *foobar(void) __attribute__ ((ifunc ("resolve_foobar")));
+''')
+  cdata.set('HAVE_INDIRECT_FUNCTIONS', 1,
+            description: 'have support for indirect functions')
+endif
+
 if cc.compiles('''
     #include <stdlib.h>
     extern void *make() __attribute__((malloc(free)));

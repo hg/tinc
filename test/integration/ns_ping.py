@@ -2,6 +2,8 @@
 
 """Create two network namespaces and run ping between them."""
 
+import os
+import signal
 import subprocess as subp
 import typing as T
 
@@ -60,8 +62,9 @@ def init(ctx: Test) -> T.Tuple[Tinc, Tinc]:
 def ping(namespace: str, ip_addr: str) -> int:
     """Send pings between two network namespaces."""
     log.info("pinging node from netns %s at %s", namespace, ip_addr)
+
     proc = subp.run(
-        ["ip", "netns", "exec", namespace, "ping", "-W1", "-c1", ip_addr], check=False
+        ["ip", "netns", "exec", namespace, "iperf3", "-t", "60", "-c", ip_addr], check=False
     )
 
     log.info("ping finished with code %d", proc.returncode)
@@ -75,9 +78,6 @@ with Test("ns-ping") as context:
     log.info("waiting for nodes to come up")
     bar_node[Script.TINC_UP].wait()
 
-    log.info("ping must not work when there is no connection")
-    assert ping(foo_node.name, IP_BAR)
-
     log.info("add script foo/host-up")
     bar_node.add_script(foo_node.script_up)
 
@@ -86,6 +86,8 @@ with Test("ns-ping") as context:
 
     log.info("bar waits for foo")
     bar_node[foo_node.script_up].wait()
+
+    subp.Popen(["ip", "netns", "exec", bar_node.name, "iperf3", "-s"], stdout=subp.DEVNULL, stderr=subp.DEVNULL)
 
     log.info("ping must work after connection is up")
     assert not ping(foo_node.name, IP_BAR)
