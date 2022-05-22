@@ -229,22 +229,33 @@ void chacha_encrypt_bytes(struct chacha_ctx *x, const uint8_t *m, uint8_t *c, ui
 
 void chacha_resolve_functions(void) {
 	cpu_detect_features();
+    chacha_encrypt_bytes_impl = chacha_encrypt_bytes_neon;
 
-#ifdef HAVE_CPU_AVX2
-
-	if(cpu_supports(CPU_AVX2)) {
-		chacha_encrypt_bytes_impl = chacha_encrypt_bytes_avx2;
-		return;
-	}
-
-#endif
-#ifdef HAVE_CPU_SSSE3
-
-	if(cpu_supports(CPU_SSSE3)) {
-		chacha_encrypt_bytes_impl = chacha_encrypt_bytes_ssse3;
-		return;
-	}
-
-#endif
-	chacha_encrypt_bytes_impl = chacha_encrypt_bytes_generic;
+//#ifdef HAVE_CPU_NEON
+//
+//	if(cpu_supports(CPU_NEON)) {
+//		chacha_encrypt_bytes_impl = chacha_encrypt_bytes_neon;
+//		return;
+//	}
+//
+//#endif
+//
+//#ifdef HAVE_CPU_AVX2
+//
+//	if(cpu_supports(CPU_AVX2)) {
+//		chacha_encrypt_bytes_impl = chacha_encrypt_bytes_avx2;
+//		return;
+//	}
+//
+//#endif
+//#ifdef HAVE_CPU_SSSE3
+//
+//	if(cpu_supports(CPU_SSSE3)) {
+//		chacha_encrypt_bytes_impl = chacha_encrypt_bytes_ssse3;
+//		return;
+//	}
+//
+//#endif
+//
+//	chacha_encrypt_bytes_impl = chacha_encrypt_bytes_generic;
 }

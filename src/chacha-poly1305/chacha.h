@@ -21,6 +21,9 @@ typedef struct chacha_ctx {
 
 typedef void (chacha_encrypt_bytes_t)(chacha_ctx *ctx, const uint8_t *m, uint8_t *c, uint32_t bytes);
 
+#ifdef HAVE_CPU_NEON
+extern chacha_encrypt_bytes_t chacha_encrypt_bytes_neon;
+#endif
 #ifdef HAVE_CPU_AVX2
 extern chacha_encrypt_bytes_t chacha_encrypt_bytes_avx2;
 #endif

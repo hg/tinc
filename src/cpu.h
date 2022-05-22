@@ -6,6 +6,7 @@
 typedef enum {
 	CPU_AVX2  = 1 << 0,
 	CPU_SSSE3 = 1 << 1,
+	CPU_NEON  = 1 << 2,
 } cpu_feature_t;
 
 // Detect supported features. Should be called once at application startup.

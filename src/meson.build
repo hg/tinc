@@ -29,7 +29,9 @@ src_cpuid = '''
   }
 '''
 
-if cpu_family in ['x86', 'x86_64'] and cc.compiles(src_cpuid)
+if cpu_family in ['arm', 'aarch64']
+  cdata.set('HAVE_CPU_NEON', 1, description: 'have ARM NEON headers')
+elif cpu_family in ['x86', 'x86_64'] and cc.compiles(src_cpuid)
   cdata.set('HAVE_CPUID', 1, description: 'have cpuid instruction support')
   if cc.has_header_symbol('immintrin.h', '_mm_shuffle_epi8')
     cdata.set('HAVE_CPU_SSSE3', 1, description: 'have SSSE3 headers')

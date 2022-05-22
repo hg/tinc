@@ -4,14 +4,18 @@ src_chacha_poly = files(
   'poly1305.c',
 )
 
-chacha_impl = 'generic'
-if cdata.has('HAVE_CPU_SSSE3')
+if cdata.has('HAVE_CPU_NEON')
+  src_chacha_poly += files('chacha_neon.c')
+  chacha_impl = 'NEON'
+elif cdata.has('HAVE_CPU_SSSE3')
   src_chacha_poly += files('chacha_ssse3.c')
   chacha_impl = 'SSSE3'
   if cdata.has('HAVE_CPU_AVX2')
     src_chacha_poly += files('chacha_avx2.c')
     chacha_impl = 'AVX2'
   endif
+else
+  chacha_impl = 'generic'
 endif
 
 if meson_version.version_compare('>=0.53')

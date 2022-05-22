@@ -64,6 +64,10 @@ void cpu_detect_features(void) {
 		return;
 	}
 
+#if defined(__ARM_NEON) || defined(__aarch64__)
+	features |= CPU_NEON;
+#endif
+
 #ifdef HAVE_CPU_SSSE3
 	tinc_cpuid(cpu_info, 0x01);
 
