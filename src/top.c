@@ -249,7 +249,7 @@ static void redraw(void) {
 
 	if(changed) {
 		n = 0;
-		sorted = xrealloc(sorted, node_list.count * sizeof(*sorted));
+		sorted = xrealloc(sorted, node_list.count * sizeof(sorted));
 
 		for list_each(nodestats_t, ns, &node_list) {
 			sorted[n++] = ns;
@@ -263,7 +263,7 @@ static void redraw(void) {
 	}
 
 	if(sorted) {
-		qsort(sorted, n, sizeof(*sorted), sortfunc);
+		qsort(sorted, n, sizeof(sorted), sortfunc);
 	}
 
 	for(int i = 0, row = 3; i < n; i++, row++) {
