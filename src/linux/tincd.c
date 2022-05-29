@@ -368,7 +368,7 @@ static void hosts_scripts_deny_write(const char *hosts) {
 			continue;
 		}
 
-		mode_t nowrite = (st.st_mode & 0777u) & ~(S_IWUSR | S_IWGRP | S_IWOTH);
+		mode_t nowrite = (st.st_mode & 0777u) & ~(uint32_t)(S_IWUSR | S_IWGRP | S_IWOTH);
 
 		if(chmod(fname, nowrite)) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Could not chmod file %s: %s", fname, strerror(errno));
