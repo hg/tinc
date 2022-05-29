@@ -443,10 +443,10 @@ bool sandbox_enter(void) {
 	if(chrooted()) {
 		logger(DEBUG_ALWAYS, LOG_NOTICE, "chroot is used, disabling path sandbox.");
 	} else {
-		if(!add_path_rules()) {
-			logger(DEBUG_ALWAYS, LOG_ERR, "Failed to block filesystem access: %s", strerror(errno));
-			return false;
-		}
+//		if(!add_path_rules()) {
+//			logger(DEBUG_ALWAYS, LOG_ERR, "Failed to block filesystem access: %s", strerror(errno));
+//			return false;
+//		}
 
 		can_use_new_paths = false;
 	}
