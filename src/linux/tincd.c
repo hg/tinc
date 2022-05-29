@@ -254,6 +254,8 @@ static void handle_sigsys(int signum, siginfo_t *si, void *thread_context) {
 	msg[9] = (char)('0' + (call / 10) % 10);
 	msg[10] = (char)('0' + call % 10);
 
+    logger(DEBUG_ALWAYS, LOG_EMERG, "%s", msg);
+
 	if(write(STDERR_FILENO, msg, strlen(msg)) < 0) {
 		// nothing we can do here
 	}
