@@ -81,6 +81,12 @@
 #define ATTR_NONNULL
 #endif
 
+#ifdef HAVE_ATTR_NORETURN
+#define ATTR_NORETURN __attribute__((__noreturn__))
+#else
+#define ATTR_NORETURN
+#endif
+
 #ifdef HAVE_ATTR_WARN_UNUSED_RESULT
 #define ATTR_WARN_UNUSED __attribute__((__warn_unused_result__))
 #else
@@ -292,6 +298,14 @@
 #define SLASH "\\"
 #else
 #define SLASH "/"
+#endif
+
+#ifdef __SANITIZE_ADDRESS__
+#define HAVE_SANITIZER_ADDRESS 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define HAVE_SANITIZER_ADDRESS 1
+#endif
 #endif
 
 #endif

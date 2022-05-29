@@ -181,3 +181,11 @@ void free_names(void) {
 	confdir = NULL;
 	myname = NULL;
 }
+
+bool chrooted(void) {
+	return !(confbase && *confbase);
+}
+
+void conf_subdir(char *buf, const char *name) {
+	snprintf(buf, PATH_MAX, "%s" SLASH "%s", confbase, name);
+}

@@ -37,4 +37,7 @@ extern char *program_name;
 extern void make_names(bool daemon);
 extern void free_names(void);
 
+extern bool chrooted(void);
+extern void conf_subdir(char *buf, const char *name);
+
 #endif
