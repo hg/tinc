@@ -20,7 +20,7 @@ static bool entered = false;
 static bool can_use_new_paths = true;
 
 #define DENY_MEMORY(call, flags) \
-	if(seccomp_rule_add(ctx, SCMP_ACT_TRAP, SCMP_SYS(call), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, flags, flags)) < 0) goto exit
+	if(seccomp_rule_add(ctx, SCMP_ACT_LOG, SCMP_SYS(call), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, flags, flags)) < 0) goto exit
 
 // Block attempts to create (or change) memory regions that are both writable and executable.
 static bool add_seccomp_memory_wxe(void) {
@@ -266,7 +266,7 @@ static void handle_sigsys(int signum, siginfo_t *si, void *thread_context) {
 // Allow only syscalls used by tincd.
 static bool add_seccomp_used(void) {
 	bool success = false;
-	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_TRAP);
+	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_LOG);
 
 	if(ctx) {
 		logger(DEBUG_ALWAYS, LOG_DEBUG, "Adding used syscalls filter");
