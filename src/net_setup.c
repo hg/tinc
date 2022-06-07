@@ -769,6 +769,8 @@ static bool setup_myself(void) {
 	myself->connection->name = name;
 	read_host_config(&config_tree, name, true);
 
+	alloc_node_data(myself);
+
 	if(!get_config_string(lookup_config(&config_tree, "Port"), &myport.tcp)) {
 		myport.tcp = xstrdup("655");
 	} else {
@@ -920,14 +922,14 @@ static bool setup_myself(void) {
 	}
 
 	if(!strcasecmp(cipher, "none")) {
-		myself->incipher = NULL;
+		myself->data->legacy.in.cipher = NULL;
 	} else {
-		myself->incipher = cipher_alloc();
+		myself->data->legacy.in.cipher = cipher_alloc();
 
-		if(!cipher_open_by_name(myself->incipher, cipher)) {
+		if(!cipher_open_by_name(myself->data->legacy.in.cipher, cipher)) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Unrecognized cipher type!");
-			cipher_free(myself->incipher);
-			myself->incipher = NULL;
+			cipher_free(myself->data->legacy.in.cipher);
+			myself->data->legacy.in.cipher = NULL;
 			free(cipher);
 			return false;
 		}
@@ -956,14 +958,14 @@ static bool setup_myself(void) {
 	}
 
 	if(!strcasecmp(digest, "none")) {
-		myself->indigest = NULL;
+		myself->data->legacy.in.digest = NULL;
 	} else {
-		myself->indigest = digest_alloc();
+		myself->data->legacy.in.digest = digest_alloc();
 
-		if(!digest_open_by_name(myself->indigest, digest, maclength)) {
+		if(!digest_open_by_name(myself->data->legacy.in.digest, digest, maclength)) {
 			logger(DEBUG_ALWAYS, LOG_ERR, "Unrecognized digest type!");
-			digest_free(myself->indigest);
-			myself->indigest = NULL;
+			digest_free(myself->data->legacy.in.digest);
+			myself->data->legacy.in.digest = NULL;
 			free(digest);
 			return false;
 		}
@@ -976,9 +978,9 @@ static bool setup_myself(void) {
 	int incompression = 0;
 
 	if(get_config_int(lookup_config(&config_tree, "Compression"), &incompression)) {
-		myself->incompression = incompression;
+		myself->data->in.compression = incompression;
 
-		switch(myself->incompression) {
+		switch(myself->data->in.compression) {
 		case COMPRESS_LZ4:
 #ifdef HAVE_LZ4
 			break;
@@ -1020,11 +1022,11 @@ static bool setup_myself(void) {
 
 		default:
 			logger(DEBUG_ALWAYS, LOG_ERR, "Bogus compression level!");
-			logger(DEBUG_ALWAYS, LOG_ERR, "Compression level %i is unrecognized by this node.", myself->incompression);
+			logger(DEBUG_ALWAYS, LOG_ERR, "Compression level %i is unrecognized by this node.", myself->data->in.compression);
 			return false;
 		}
 	} else {
-		myself->incompression = COMPRESS_NONE;
+		myself->data->in.compression = COMPRESS_NONE;
 	}
 
 	/* Done */

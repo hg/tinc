@@ -87,20 +87,22 @@ int udp_discovery_timeout = 30;
 #define MAX_SEQNO 1073741824
 
 static void try_fix_mtu(node_t *n) {
-	if(n->mtuprobes < 0) {
+	assert(n->data);
+
+	if(n->data->mtuprobes < 0) {
 		return;
 	}
 
-	if(n->mtuprobes == 20 || n->minmtu >= n->maxmtu) {
-		if(n->minmtu > n->maxmtu) {
-			n->minmtu = n->maxmtu;
+	if(n->data->mtuprobes == 20 || n->data->minmtu >= n->data->maxmtu) {
+		if(n->data->minmtu > n->data->maxmtu) {
+			n->data->minmtu = n->data->maxmtu;
 		} else {
-			n->maxmtu = n->minmtu;
+			n->data->maxmtu = n->data->minmtu;
 		}
 
-		n->mtu = n->minmtu;
-		logger(DEBUG_TRAFFIC, LOG_INFO, "Fixing MTU of %s (%s) to %d after %d probes", n->name, n->hostname, n->mtu, n->mtuprobes);
-		n->mtuprobes = -1;
+		n->mtu = n->data->minmtu;
+		logger(DEBUG_TRAFFIC, LOG_INFO, "Fixing MTU of %s (%s) to %d after %d probes", n->name, n->hostname, n->mtu, n->data->mtuprobes);
+		n->data->mtuprobes = -1;
 	}
 }
 
@@ -109,8 +111,10 @@ static void reduce_mtu(node_t *n, int mtu) {
 		mtu = MINMTU;
 	}
 
-	if(n->maxmtu > mtu) {
-		n->maxmtu = mtu;
+	alloc_node_data(n);
+
+	if(n->data->maxmtu > mtu) {
+		n->data->maxmtu = mtu;
 	}
 
 	if(n->mtu > mtu) {
@@ -123,17 +127,17 @@ static void reduce_mtu(node_t *n, int mtu) {
 static void udp_probe_timeout_handler(void *data) {
 	node_t *n = data;
 
-	if(!n->status.udp_confirmed) {
+	if(!n->status.udp_confirmed || !n->data) {
 		return;
 	}
 
 	logger(DEBUG_TRAFFIC, LOG_INFO, "Too much time has elapsed since last UDP ping response from %s (%s), stopping UDP communication", n->name, n->hostname);
 	n->status.udp_confirmed = false;
-	n->udp_ping_rtt = -1;
-	n->maxrecentlen = 0;
-	n->mtuprobes = 0;
-	n->minmtu = 0;
-	n->maxmtu = MTU;
+	n->data->udp_ping_rtt = -1;
+	n->data->maxrecentlen = 0;
+	n->data->mtuprobes = 0;
+	n->data->minmtu = 0;
+	n->data->maxmtu = MTU;
 }
 
 static void send_udp_probe_reply(node_t *n, vpn_packet_t *packet, length_t len) {
@@ -179,13 +183,16 @@ static void udp_probe_h(node_t *n, vpn_packet_t *packet, length_t len) {
 		len = ntohs(len16);
 	}
 
+	alloc_node_data(n);
+
 	if(n->status.ping_sent) {  // a probe in flight
 		gettimeofday(&now, NULL);
 		struct timeval rtt;
-		timersub(&now, &n->udp_ping_sent, &rtt);
-		n->udp_ping_rtt = (int)(rtt.tv_sec * 1000000 + rtt.tv_usec);
+		timersub(&now, &n->data->udp_ping_sent, &rtt);
+		n->data->udp_ping_rtt = (int)(rtt.tv_sec * 1000000 + rtt.tv_usec);
 		n->status.ping_sent = false;
-		logger(DEBUG_TRAFFIC, LOG_INFO, "Got type %d UDP probe reply %d from %s (%s) rtt=%d.%03d", DATA(packet)[0], len, n->name, n->hostname, n->udp_ping_rtt / 1000, n->udp_ping_rtt % 1000);
+		logger(DEBUG_TRAFFIC, LOG_INFO, "Got type %d UDP probe reply %d from %s (%s) rtt=%d.%03d",
+		       DATA(packet)[0], len, n->name, n->hostname, n->data->udp_ping_rtt / 1000, n->data->udp_ping_rtt % 1000);
 	} else {
 		logger(DEBUG_TRAFFIC, LOG_INFO, "Got type %d UDP probe reply %d from %s (%s)", DATA(packet)[0], len, n->name, n->hostname);
 	}
@@ -209,29 +216,29 @@ static void udp_probe_h(node_t *n, vpn_packet_t *packet, length_t len) {
 	// Reset the UDP ping timer.
 
 	if(udp_discovery) {
-		timeout_del(&n->udp_ping_timeout);
-		timeout_add(&n->udp_ping_timeout, &udp_probe_timeout_handler, n, &(struct timeval) {
+		timeout_del(&n->data->udp_ping_timeout);
+		timeout_add(&n->data->udp_ping_timeout, &udp_probe_timeout_handler, n, &(struct timeval) {
 			udp_discovery_timeout, 0
 		});
 	}
 
-	if(len > n->maxmtu) {
+	if(len > n->data->maxmtu) {
 		logger(DEBUG_TRAFFIC, LOG_INFO, "Increase in PMTU to %s (%s) detected, restarting PMTU discovery", n->name, n->hostname);
-		n->minmtu = len;
-		n->maxmtu = MTU;
+		n->data->minmtu = len;
+		n->data->maxmtu = MTU;
 		/* Set mtuprobes to 1 so that try_mtu() doesn't reset maxmtu */
-		n->mtuprobes = 1;
+		n->data->mtuprobes = 1;
 		return;
-	} else if(n->mtuprobes < 0 && len == n->maxmtu) {
+	} else if(n->data->mtuprobes < 0 && len == n->data->maxmtu) {
 		/* We got a maxmtu sized packet, confirming the PMTU is still valid. */
-		n->mtuprobes = -1;
-		n->mtu_ping_sent = now;
+		n->data->mtuprobes = -1;
+		n->data->mtu_ping_sent = now;
 	}
 
 	/* If applicable, raise the minimum supported MTU */
 
-	if(n->minmtu < len) {
-		n->minmtu = len;
+	if(n->data->minmtu < len) {
+		n->data->minmtu = len;
 		try_fix_mtu(n);
 	}
 }
@@ -393,8 +400,9 @@ static void receive_packet(node_t *n, vpn_packet_t *packet) {
 	logger(DEBUG_TRAFFIC, LOG_DEBUG, "Received packet of %d bytes from %s (%s)",
 	       packet->len, n->name, n->hostname);
 
-	n->in_packets++;
-	n->in_bytes += packet->len;
+	alloc_node_data(n);
+	n->data->in.packets++;
+	n->data->in.bytes += packet->len;
 
 	route(n, packet);
 }
@@ -408,15 +416,17 @@ static bool try_mac(node_t *n, const vpn_packet_t *inpkt) {
 	return false;
 #else
 
-	if(!n->status.validkey_in || !digest_active(n->indigest) || (size_t)inpkt->len < sizeof(seqno_t) + digest_length(n->indigest)) {
+	if(!n->status.validkey_in || !n->data || !digest_active(n->data->legacy.in.digest) || (size_t)inpkt->len < sizeof(seqno_t) + digest_length(n->data->legacy.in.digest)) {
 		return false;
 	}
 
-	return digest_verify(n->indigest, inpkt->data, inpkt->len - digest_length(n->indigest), inpkt->data + inpkt->len - digest_length(n->indigest));
+	return digest_verify(n->data->legacy.in.digest, inpkt->data, inpkt->len - digest_length(n->data->legacy.in.digest), inpkt->data + inpkt->len - digest_length(n->data->legacy.in.digest));
 #endif
 }
 
 static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
+	alloc_node_data(n);
+
 	if(n->status.sptps) {
 		if(!n->sptps.state) {
 			if(!n->status.waitingforkey) {
@@ -466,7 +476,7 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 
 	/* Check packet length */
 
-	if((size_t)inpkt->len < sizeof(seqno_t) + digest_length(n->indigest)) {
+	if((size_t)inpkt->len < sizeof(seqno_t) + digest_length(n->data->legacy.in.digest)) {
 		logger(DEBUG_TRAFFIC, LOG_DEBUG, "Got too short packet from %s (%s)",
 		       n->name, n->hostname);
 		return false;
@@ -478,10 +488,10 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 
 	/* Check the message authentication code */
 
-	if(digest_active(n->indigest)) {
-		inpkt->len -= digest_length(n->indigest);
+	if(digest_active(n->data->legacy.in.digest)) {
+		inpkt->len -= digest_length(n->data->legacy.in.digest);
 
-		if(!digest_verify(n->indigest, SEQNO(inpkt), inpkt->len, SEQNO(inpkt) + inpkt->len)) {
+		if(!digest_verify(n->data->legacy.in.digest, SEQNO(inpkt), inpkt->len, SEQNO(inpkt) + inpkt->len)) {
 			logger(DEBUG_TRAFFIC, LOG_DEBUG, "Got unauthenticated packet from %s (%s)", n->name, n->hostname);
 			return false;
 		}
@@ -489,11 +499,11 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 
 	/* Decrypt the packet */
 
-	if(cipher_active(n->incipher)) {
+	if(cipher_active(n->data->legacy.in.cipher)) {
 		vpn_packet_t *outpkt = pkt[nextpkt++];
 		outlen = MAXSIZE;
 
-		if(!cipher_decrypt(n->incipher, SEQNO(inpkt), inpkt->len, SEQNO(outpkt), &outlen, true)) {
+		if(!cipher_decrypt(n->data->legacy.in.cipher, SEQNO(inpkt), inpkt->len, SEQNO(outpkt), &outlen, true)) {
 			logger(DEBUG_TRAFFIC, LOG_DEBUG, "Error decrypting packet from %s (%s)", n->name, n->hostname);
 			return false;
 		}
@@ -510,41 +520,39 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 	inpkt->len -= sizeof(seqno);
 
 	if(replaywin) {
-		if(seqno != n->received_seqno + 1) {
-			if(seqno >= n->received_seqno + replaywin * 8) {
-				if(n->farfuture++ < replaywin >> 2) {
+		if(seqno != n->data->legacy.received_seqno + 1) {
+			if(seqno >= n->data->legacy.received_seqno + replaywin * 8) {
+				if(n->data->legacy.farfuture++ < replaywin >> 2) {
 					logger(DEBUG_TRAFFIC, LOG_WARNING, "Packet from %s (%s) is %d seqs in the future, dropped (%u)",
-					       n->name, n->hostname, seqno - n->received_seqno - 1, n->farfuture);
+					       n->name, n->hostname, seqno - n->data->legacy.received_seqno - 1, n->data->legacy.farfuture);
 					return false;
 				}
 
 				logger(DEBUG_TRAFFIC, LOG_WARNING, "Lost %d packets from %s (%s)",
-				       seqno - n->received_seqno - 1, n->name, n->hostname);
-				memset(n->late, 0, replaywin);
-			} else if(seqno <= n->received_seqno) {
-				if((n->received_seqno >= replaywin * 8 && seqno <= n->received_seqno - replaywin * 8) || !(n->late[(seqno / 8) % replaywin] & (1 << seqno % 8))) {
+				       seqno - n->data->legacy.received_seqno - 1, n->name, n->hostname);
+				memset(n->data->legacy.late, 0, replaywin);
+			} else if(seqno <= n->data->legacy.received_seqno) {
+				if((n->data->legacy.received_seqno >= replaywin * 8 && seqno <= n->data->legacy.received_seqno - replaywin * 8) || !(n->data->legacy.late[(seqno / 8) % replaywin] & (1 << seqno % 8))) {
 					logger(DEBUG_TRAFFIC, LOG_WARNING, "Got late or replayed packet from %s (%s), seqno %d, last received %d",
-					       n->name, n->hostname, seqno, n->received_seqno);
+					       n->name, n->hostname, seqno, n->data->legacy.received_seqno);
 					return false;
 				}
 			} else {
-				for(seqno_t i = n->received_seqno + 1; i < seqno; i++) {
-					n->late[(i / 8) % replaywin] |= 1 << i % 8;
+				for(seqno_t i = n->data->legacy.received_seqno + 1; i < seqno; i++) {
+					n->data->legacy.late[(i / 8) % replaywin] |= 1 << i % 8;
 				}
 			}
 		}
 
-		n->farfuture = 0;
-		n->late[(seqno / 8) % replaywin] &= ~(1 << seqno % 8);
+		n->data->legacy.farfuture = 0;
+		n->data->legacy.late[(seqno / 8) % replaywin] &= ~(1 << seqno % 8);
 	}
 
-	if(seqno > n->received_seqno) {
-		n->received_seqno = seqno;
+	if(seqno > n->data->legacy.received_seqno) {
+		n->data->legacy.received_seqno = seqno;
 	}
 
-	n->received++;
-
-	if(n->received_seqno > MAX_SEQNO) {
+	if(n->data->legacy.received_seqno > MAX_SEQNO) {
 		regenerate_key();
 	}
 
@@ -552,10 +560,10 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 
 	length_t origlen = inpkt->len;
 
-	if(n->incompression != COMPRESS_NONE) {
+	if(n->data->in.compression != COMPRESS_NONE) {
 		vpn_packet_t *outpkt = pkt[nextpkt++];
 
-		if(!(outpkt->len = uncompress_packet(DATA(outpkt), DATA(inpkt), inpkt->len, n->incompression))) {
+		if(!(outpkt->len = uncompress_packet(DATA(outpkt), DATA(inpkt), inpkt->len, n->data->in.compression))) {
 			logger(DEBUG_TRAFFIC, LOG_ERR, "Error while uncompressing packet from %s (%s)",
 			       n->name, n->hostname);
 			return false;
@@ -570,8 +578,8 @@ static bool receive_udppacket(node_t *n, vpn_packet_t *inpkt) {
 		}
 	}
 
-	if(inpkt->len > n->maxrecentlen) {
-		n->maxrecentlen = inpkt->len;
+	if(inpkt->len > n->data->maxrecentlen) {
+		n->data->maxrecentlen = inpkt->len;
 	}
 
 	inpkt->priority = 0;
@@ -699,9 +707,9 @@ static void send_sptps_packet(node_t *n, vpn_packet_t *origpkt) {
 
 	vpn_packet_t outpkt;
 
-	if(n->outcompression != COMPRESS_NONE) {
+	if(n->data && n->data->out.compression != COMPRESS_NONE) {
 		outpkt.offset = 0;
-		length_t len = compress_packet(DATA(&outpkt) + offset, DATA(origpkt) + offset, origpkt->len - offset, n->outcompression);
+		length_t len = compress_packet(DATA(&outpkt) + offset, DATA(origpkt) + offset, origpkt->len - offset, n->data->out.compression);
 
 		if(!len) {
 			logger(DEBUG_TRAFFIC, LOG_ERR, "Error while compressing packet to %s (%s)", n->name, n->hostname);
@@ -716,7 +724,7 @@ static void send_sptps_packet(node_t *n, vpn_packet_t *origpkt) {
 	   don't bother with SPTPS and just use a "plaintext" PACKET message.
 	   We don't really care about end-to-end security since we're not
 	   sending the message through any intermediate nodes. */
-	if(n->connection && origpkt->len > n->minmtu) {
+	if(n->connection && n->data && origpkt->len > n->data->minmtu) {
 		send_tcppacket(n->connection, origpkt);
 	} else {
 		sptps_send_record(&n->sptps, type, DATA(origpkt) + offset, origpkt->len - offset);
@@ -837,7 +845,9 @@ static void send_udppacket(node_t *n, vpn_packet_t *origpkt) {
 		return;
 	}
 
-	if(n->options & OPTION_PMTU_DISCOVERY && inpkt->len > n->minmtu && (DATA(inpkt)[12] | DATA(inpkt)[13])) {
+	alloc_node_data(n);
+
+	if(n->options & OPTION_PMTU_DISCOVERY && inpkt->len > n->data->minmtu && (DATA(inpkt)[12] | DATA(inpkt)[13])) {
 		logger(DEBUG_TRAFFIC, LOG_INFO,
 		       "Packet for %s (%s) larger than minimum MTU, forwarding via %s",
 		       n->name, n->hostname, n != n->nexthop ? n->nexthop->name : "TCP");
@@ -853,10 +863,10 @@ static void send_udppacket(node_t *n, vpn_packet_t *origpkt) {
 
 	/* Compress the packet */
 
-	if(n->outcompression != COMPRESS_NONE) {
+	if(n->data->out.compression != COMPRESS_NONE) {
 		outpkt = pkt[nextpkt++];
 
-		if(!(outpkt->len = compress_packet(DATA(outpkt), DATA(inpkt), inpkt->len, n->outcompression))) {
+		if(!(outpkt->len = compress_packet(DATA(outpkt), DATA(inpkt), inpkt->len, n->data->out.compression))) {
 			logger(DEBUG_TRAFFIC, LOG_ERR, "Error while compressing packet to %s (%s)",
 			       n->name, n->hostname);
 			return;
@@ -867,17 +877,17 @@ static void send_udppacket(node_t *n, vpn_packet_t *origpkt) {
 
 	/* Add sequence number */
 
-	seqno_t seqno = htonl(++(n->sent_seqno));
+	seqno_t seqno = htonl(++(n->data->legacy.sent_seqno));
 	memcpy(SEQNO(inpkt), &seqno, sizeof(seqno));
 	inpkt->len += sizeof(seqno);
 
 	/* Encrypt the packet */
 
-	if(cipher_active(n->outcipher)) {
+	if(cipher_active(n->data->legacy.out.cipher)) {
 		outpkt = pkt[nextpkt++];
 		outlen = MAXSIZE;
 
-		if(!cipher_encrypt(n->outcipher, SEQNO(inpkt), inpkt->len, SEQNO(outpkt), &outlen, true)) {
+		if(!cipher_encrypt(n->data->legacy.out.cipher, SEQNO(inpkt), inpkt->len, SEQNO(outpkt), &outlen, true)) {
 			logger(DEBUG_TRAFFIC, LOG_ERR, "Error while encrypting packet to %s (%s)", n->name, n->hostname);
 			goto end;
 		}
@@ -888,13 +898,13 @@ static void send_udppacket(node_t *n, vpn_packet_t *origpkt) {
 
 	/* Add the message authentication code */
 
-	if(digest_active(n->outdigest)) {
-		if(!digest_create(n->outdigest, SEQNO(inpkt), inpkt->len, SEQNO(inpkt) + inpkt->len)) {
+	if(digest_active(n->data->legacy.out.digest)) {
+		if(!digest_create(n->data->legacy.out.digest, SEQNO(inpkt), inpkt->len, SEQNO(inpkt) + inpkt->len)) {
 			logger(DEBUG_TRAFFIC, LOG_ERR, "Error while encrypting packet to %s (%s)", n->name, n->hostname);
 			goto end;
 		}
 
-		inpkt->len += digest_length(n->outdigest);
+		inpkt->len += digest_length(n->data->legacy.out.digest);
 	}
 
 	/* Send the packet */
@@ -957,14 +967,14 @@ end:
 
 bool send_sptps_data(node_t *to, node_t *from, int type, const void *data, size_t len) {
 	size_t origlen = len - SPTPS_DATAGRAM_OVERHEAD;
-	node_t *relay = (to->via != myself && (type == PKT_PROBE || origlen <= to->via->minmtu)) ? to->via : to->nexthop;
+	node_t *relay = (to->via != myself && (type == PKT_PROBE || (to->via->data && origlen <= to->via->data->minmtu))) ? to->via : to->nexthop;
 	bool direct = from == myself && to == relay;
 	bool relay_supported = (relay->options >> 24) >= 4;
 	bool tcponly = (myself->options | relay->options) & OPTION_TCPONLY;
 
 	/* Send it via TCP if it is a handshake packet, TCPOnly is in use, this is a relay packet that the other node cannot understand, or this packet is larger than the MTU. */
 
-	if(type == SPTPS_HANDSHAKE || tcponly || (!direct && !relay_supported) || (type != PKT_PROBE && origlen > relay->minmtu)) {
+	if(type == SPTPS_HANDSHAKE || tcponly || (!direct && !relay_supported) || (type != PKT_PROBE && relay->data && origlen > relay->data->minmtu)) {
 		if(type != SPTPS_HANDSHAKE && (to->nexthop->connection->options >> 24) >= 7) {
 			const size_t buflen = len + sizeof(to->id) + sizeof(from->id);
 			uint8_t *buf = alloca(buflen);
@@ -985,8 +995,9 @@ bool send_sptps_data(node_t *to, node_t *from, int type, const void *data, size_
 		    - We don't want intermediate nodes to switch to UDP to relay these packets;
 		    - ANS_KEY allows us to learn the reflexive UDP address. */
 		if(type == SPTPS_HANDSHAKE) {
-			to->incompression = myself->incompression;
-			return send_request(to->nexthop->connection, "%d %s %s %s -1 -1 -1 %d", ANS_KEY, from->name, to->name, buf, to->incompression);
+			alloc_node_data(to);
+			to->data->in.compression = myself->data->in.compression;
+			return send_request(to->nexthop->connection, "%d %s %s %s -1 -1 -1 %d", ANS_KEY, from->name, to->name, buf, to->data->in.compression);
 		} else {
 			return send_request(to->nexthop->connection, "%d %s %s %d %s", REQ_KEY, from->name, to->name, SPTPS_PACKET, buf);
 		}
@@ -1077,8 +1088,10 @@ bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t
 		inpkt.len = len;
 		memcpy(DATA(&inpkt), data, len);
 
-		if(inpkt.len > from->maxrecentlen) {
-			from->maxrecentlen = inpkt.len;
+		alloc_node_data(from);
+
+		if(inpkt.len > from->data->maxrecentlen) {
+			from->data->maxrecentlen = inpkt.len;
 		}
 
 		udp_probe_h(from, &inpkt, len);
@@ -1101,7 +1114,9 @@ bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t
 	int offset = (type & PKT_MAC) ? 0 : 14;
 
 	if(type & PKT_COMPRESSED) {
-		length_t ulen = uncompress_packet(DATA(&inpkt) + offset, (const uint8_t *)data, len, from->incompression);
+		alloc_node_data(from);
+
+		length_t ulen = uncompress_packet(DATA(&inpkt) + offset, (const uint8_t *)data, len, from->data->in.compression);
 
 		if(!ulen) {
 			return false;
@@ -1138,8 +1153,10 @@ bool receive_sptps_record(void *handle, uint8_t type, const void *data, uint16_t
 		}
 	}
 
-	if(from->status.udppacket && inpkt.len > from->maxrecentlen) {
-		from->maxrecentlen = inpkt.len;
+	alloc_node_data(from);
+
+	if(from->status.udppacket && inpkt.len > from->data->maxrecentlen) {
+		from->data->maxrecentlen = inpkt.len;
 	}
 
 	receive_packet(from, &inpkt);
@@ -1195,23 +1212,25 @@ static void try_udp(node_t *n) {
 		return;
 	}
 
+	alloc_node_data(n);
+
 	/* Send gratuitous probe replies to 1.1 nodes. */
 
 	if((n->options >> 24) >= 3 && n->status.udp_confirmed) {
 		struct timeval ping_tx_elapsed;
-		timersub(&now, &n->udp_reply_sent, &ping_tx_elapsed);
+		timersub(&now, &n->data->udp_reply_sent, &ping_tx_elapsed);
 
 		if(ping_tx_elapsed.tv_sec >= udp_discovery_keepalive_interval - 1) {
-			n->udp_reply_sent = now;
+			n->data->udp_reply_sent = now;
 
-			if(n->maxrecentlen) {
+			if(n->data->maxrecentlen) {
 				vpn_packet_t pkt;
-				pkt.len = n->maxrecentlen;
+				pkt.len = n->data->maxrecentlen;
 				pkt.offset = DEFAULT_PACKET_OFFSET;
 				memset(DATA(&pkt), 0, 14);
 				randomize(DATA(&pkt) + 14, MIN_PROBE_SIZE - 14);
 				send_udp_probe_reply(n, &pkt, pkt.len);
-				n->maxrecentlen = 0;
+				n->data->maxrecentlen = 0;
 			}
 		}
 	}
@@ -1219,7 +1238,7 @@ static void try_udp(node_t *n) {
 	/* Probe request */
 
 	struct timeval ping_tx_elapsed;
-	timersub(&now, &n->udp_ping_sent, &ping_tx_elapsed);
+	timersub(&now, &n->data->udp_ping_sent, &ping_tx_elapsed);
 
 	int interval = n->status.udp_confirmed
 	               ? udp_discovery_keepalive_interval
@@ -1227,7 +1246,7 @@ static void try_udp(node_t *n) {
 
 	if(ping_tx_elapsed.tv_sec >= interval) {
 		gettimeofday(&now, NULL);
-		n->udp_ping_sent = now; // a probe in flight
+		n->data->udp_ping_sent = now; // a probe in flight
 		n->status.ping_sent = true;
 		send_udp_probe_packet(n, MIN_PROBE_SIZE);
 
@@ -1296,7 +1315,8 @@ static length_t choose_initial_maxmtu(node_t *n) {
 
 #ifndef DISABLE_LEGACY
 	} else {
-		mtu -= digest_length(n->outdigest);
+		assert(n->data);
+		mtu -= digest_length(n->data->legacy.out.digest);
 
 		/* Now it's tricky. We use CBC mode, so the length of the
 		   encrypted payload must be a multiple of the blocksize. The
@@ -1305,7 +1325,7 @@ static length_t choose_initial_maxmtu(node_t *n) {
 		   Furthermore, the padding in the last block must be at least
 		   1 byte. */
 
-		length_t blocksize = cipher_blocksize(n->outcipher);
+		length_t blocksize = cipher_blocksize(n->data->legacy.out.cipher);
 
 		if(blocksize > 1) {
 			mtu /= blocksize;
@@ -1331,8 +1351,8 @@ static length_t choose_initial_maxmtu(node_t *n) {
 }
 
 /* This function tries to determines the MTU of a node.
-   By calling this function repeatedly, n->minmtu will be progressively
-   increased, and at some point, n->mtu will be fixed to n->minmtu.  If the MTU
+   By calling this function repeatedly, n->data->minmtu will be progressively
+   increased, and at some point, n->mtu will be fixed to n->data->minmtu.  If the MTU
    is already fixed, this function checks if it can be increased.
 */
 
@@ -1341,11 +1361,13 @@ static void try_mtu(node_t *n) {
 		return;
 	}
 
+	alloc_node_data(n);
+
 	if(udp_discovery && !n->status.udp_confirmed) {
-		n->maxrecentlen = 0;
-		n->mtuprobes = 0;
-		n->minmtu = 0;
-		n->maxmtu = MTU;
+		n->data->maxrecentlen = 0;
+		n->data->mtuprobes = 0;
+		n->data->minmtu = 0;
+		n->data->maxmtu = MTU;
 		return;
 	}
 
@@ -1356,14 +1378,14 @@ static void try_mtu(node_t *n) {
 	   mtuprobes ==    -4: maxmtu no longer valid, reset minmtu and maxmtu and go to 0 */
 
 	struct timeval elapsed;
-	timersub(&now, &n->mtu_ping_sent, &elapsed);
+	timersub(&now, &n->data->mtu_ping_sent, &elapsed);
 
-	if(n->mtuprobes >= 0) {
-		if(n->mtuprobes != 0 && elapsed.tv_sec == 0 && elapsed.tv_usec < 333333) {
+	if(n->data->mtuprobes >= 0) {
+		if(n->data->mtuprobes != 0 && elapsed.tv_sec == 0 && elapsed.tv_usec < 333333) {
 			return;
 		}
 	} else {
-		if(n->mtuprobes < -1) {
+		if(n->data->mtuprobes < -1) {
 			if(elapsed.tv_sec < 1) {
 				return;
 			}
@@ -1374,32 +1396,32 @@ static void try_mtu(node_t *n) {
 		}
 	}
 
-	n->mtu_ping_sent = now;
+	n->data->mtu_ping_sent = now;
 
 	try_fix_mtu(n);
 
-	if(n->mtuprobes < -3) {
+	if(n->data->mtuprobes < -3) {
 		/* We lost three MTU probes, restart discovery */
 		logger(DEBUG_TRAFFIC, LOG_INFO, "Decrease in PMTU to %s (%s) detected, restarting PMTU discovery", n->name, n->hostname);
-		n->mtuprobes = 0;
-		n->minmtu = 0;
+		n->data->mtuprobes = 0;
+		n->data->minmtu = 0;
 	}
 
-	if(n->mtuprobes < 0) {
+	if(n->data->mtuprobes < 0) {
 		/* After the initial discovery, we only send one maxmtu and one
 		   maxmtu+1 probe to detect PMTU increases. */
-		send_udp_probe_packet(n, n->maxmtu);
+		send_udp_probe_packet(n, n->data->maxmtu);
 
-		if(n->mtuprobes == -1 && n->maxmtu + 1 < MTU) {
-			send_udp_probe_packet(n, n->maxmtu + 1);
+		if(n->data->mtuprobes == -1 && n->data->maxmtu + 1 < MTU) {
+			send_udp_probe_packet(n, n->data->maxmtu + 1);
 		}
 
-		n->mtuprobes--;
+		n->data->mtuprobes--;
 	} else {
 		/* Before initial discovery begins, set maxmtu to the most likely value.
 		   If it's underestimated, we will correct it after initial discovery. */
-		if(n->mtuprobes == 0) {
-			n->maxmtu = choose_initial_maxmtu(n);
+		if(n->data->mtuprobes == 0) {
+			n->data->maxmtu = choose_initial_maxmtu(n);
 		}
 
 		for(;;) {
@@ -1414,15 +1436,15 @@ static void try_mtu(node_t *n) {
 			   This fine-tuning is only valid for maxmtu = MTU; if maxmtu is smaller,
 			   then it's better to use a multiplier of 1. Indeed, this leads to an interesting scenario
 			   if choose_initial_maxmtu() returns the actual MTU value - it will get confirmed with one single probe. */
-			const float multiplier = (n->maxmtu == MTU) ? 0.97f : 1.0f;
+			const float multiplier = (n->data->maxmtu == MTU) ? 0.97f : 1.0f;
 
-			const float cycle_position = (float) probes_per_cycle - (float)(n->mtuprobes % probes_per_cycle) - 1.0f;
-			const length_t minmtu = MAX(n->minmtu, MINMTU);
-			const float interval = (float)(n->maxmtu - minmtu);
+			const float cycle_position = (float) probes_per_cycle - (float)(n->data->mtuprobes % probes_per_cycle) - 1.0f;
+			const length_t minmtu = MAX(n->data->minmtu, MINMTU);
+			const float interval = (float)(n->data->maxmtu - minmtu);
 
 			length_t offset = 0;
 
-			/* powf can be underflowed if n->maxmtu is less than 512 due to the minmtu MAX bound */
+			/* powf can be underflowed if n->data->maxmtu is less than 512 due to the minmtu MAX bound */
 			if(interval > 0) {
 				/* The core of the discovery algorithm is this exponential.
 				        It produces very large probes early in the cycle, and then it very quickly decreases the probe size.
@@ -1434,18 +1456,18 @@ static void try_mtu(node_t *n) {
 				offset = lrintf(powf(interval, multiplier * cycle_position / (float)(probes_per_cycle - 1)));
 			}
 
-			length_t maxmtu = n->maxmtu;
+			length_t maxmtu = n->data->maxmtu;
 			send_udp_probe_packet(n, minmtu + offset);
 
 			/* If maxmtu changed, it means the probe was rejected by the system because it was too large.
 			   In that case, we recalculate with the new maxmtu and try again. */
-			if(n->mtuprobes < 0 || maxmtu == n->maxmtu) {
+			if(n->data->mtuprobes < 0 || maxmtu == n->data->maxmtu) {
 				break;
 			}
 		}
 
-		if(n->mtuprobes >= 0) {
-			n->mtuprobes++;
+		if(n->data->mtuprobes >= 0) {
+			n->data->mtuprobes++;
 		}
 	}
 }
@@ -1554,8 +1576,8 @@ void send_packet(node_t *n, vpn_packet_t *packet) {
 			DATA(packet)[ETH_ALEN * 2 - 1] ^= 0xFF;
 		}
 
-		n->out_packets++;
-		n->out_bytes += packet->len;
+		myself->data->out.packets++;
+		myself->data->out.bytes += packet->len;
 		devops.write(packet);
 		return;
 	}
@@ -1571,8 +1593,9 @@ void send_packet(node_t *n, vpn_packet_t *packet) {
 
 	// Keep track of packet statistics.
 
-	n->out_packets++;
-	n->out_bytes += packet->len;
+	alloc_node_data(n);
+	n->data->out.packets++;
+	n->data->out.bytes += packet->len;
 
 	// Check if it should be sent as an SPTPS packet.
 
@@ -1907,8 +1930,8 @@ void handle_device_data(void *data, int flags) {
 
 	if(devops.read(&packet)) {
 		errors = 0;
-		myself->in_packets++;
-		myself->in_bytes += packet.len;
+		myself->data->in.packets++;
+		myself->data->in.bytes += packet.len;
 		route(myself, &packet);
 	} else {
 		sleep_millis(errors * 50);

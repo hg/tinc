@@ -127,7 +127,10 @@ bool send_req_key(node_t *to) {
 		to->status.validkey = false;
 		to->status.waitingforkey = true;
 		to->last_req_key = now.tv_sec;
-		to->incompression = myself->incompression;
+
+		alloc_node_data(to);
+		to->data->in.compression = myself->data->in.compression;
+
 		return sptps_start(&to->sptps, to, true, true, myself->connection->ecdsa, to->ecdsa, label, labellen, send_initial_sptps_data, receive_sptps_record);
 	}
 
@@ -340,64 +343,65 @@ bool send_ans_key(node_t *to) {
 #ifdef DISABLE_LEGACY
 	return false;
 #else
-	size_t keylen = myself->incipher ? cipher_keylength(myself->incipher) : 1;
+	size_t keylen = myself->data->legacy.in.cipher ? cipher_keylength(myself->data->legacy.in.cipher) : 1;
 	size_t keyhexlen = HEX_SIZE(keylen);
 	char *key = alloca(keyhexlen);
 
 	randomize(key, keylen);
 
-	cipher_free(to->incipher);
-	to->incipher = NULL;
+	alloc_node_data(to);
 
-	digest_free(to->indigest);
-	to->indigest = NULL;
+	cipher_free(to->data->legacy.in.cipher);
+	to->data->legacy.in.cipher = NULL;
 
-	if(myself->incipher) {
-		to->incipher = cipher_alloc();
+	digest_free(to->data->legacy.in.digest);
+	to->data->legacy.in.digest = NULL;
 
-		if(!cipher_open_by_nid(to->incipher, cipher_get_nid(myself->incipher))) {
+	if(myself->data->legacy.in.cipher) {
+		to->data->legacy.in.cipher = cipher_alloc();
+
+		if(!cipher_open_by_nid(to->data->legacy.in.cipher, cipher_get_nid(myself->data->legacy.in.cipher))) {
 			abort();
 		}
 
-		if(!cipher_set_key(to->incipher, key, false)) {
-			abort();
-		}
-	}
-
-	if(myself->indigest) {
-		to->indigest = digest_alloc();
-
-		if(!digest_open_by_nid(to->indigest,
-		                       digest_get_nid(myself->indigest),
-		                       digest_length(myself->indigest))) {
-			abort();
-		}
-
-		if(!digest_set_key(to->indigest, key, keylen)) {
+		if(!cipher_set_key(to->data->legacy.in.cipher, key, false)) {
 			abort();
 		}
 	}
 
-	to->incompression = myself->incompression;
+	if(myself->data->legacy.in.digest) {
+		to->data->legacy.in.digest = digest_alloc();
+
+		if(!digest_open_by_nid(to->data->legacy.in.digest,
+		                       digest_get_nid(myself->data->legacy.in.digest),
+		                       digest_length(myself->data->legacy.in.digest))) {
+			abort();
+		}
+
+		if(!digest_set_key(to->data->legacy.in.digest, key, keylen)) {
+			abort();
+		}
+	}
+
+	to->data->in.compression = myself->data->in.compression;
 
 	bin2hex(key, key, keylen);
 
 	// Reset sequence number and late packet window
-	to->received_seqno = 0;
-	to->received = 0;
+	to->data->legacy.received_seqno = 0;
 
 	if(replaywin) {
-		memset(to->late, 0, replaywin);
+		memset(to->data->legacy.late, 0, replaywin);
 	}
 
 	to->status.validkey_in = true;
 
 	bool sent = send_request(to->nexthop->connection, "%d %s %s %s %d %d %lu %d", ANS_KEY,
 	                         myself->name, to->name, key,
-	                         cipher_get_nid(to->incipher),
-	                         digest_get_nid(to->indigest),
-	                         (unsigned long)digest_length(to->indigest),
-	                         to->incompression);
+	                         cipher_get_nid(to->data->legacy.in.cipher),
+	                         digest_get_nid(to->data->legacy.in.digest),
+	                         (unsigned long)digest_length(to->data->legacy.in.digest),
+	                         to->data->in.compression);
 
 	memzero(key, keyhexlen);
 
@@ -458,7 +462,7 @@ bool ans_key_h(connection_t *c, const char *request) {
 			return true;
 		}
 
-		if(!*address && from->address.sa.sa_family != AF_UNSPEC && to->minmtu) {
+		if(!*address && from->address.sa.sa_family != AF_UNSPEC && to->data && to->data->minmtu) {
 			char *address, *port;
 			logger(DEBUG_PROTOCOL, LOG_DEBUG, "Appending reflexive UDP address to ANS_KEY from %s to %s", from->name, to->name);
 			sockaddr2str(&from->address, &address, &port);
@@ -471,13 +475,16 @@ bool ans_key_h(connection_t *c, const char *request) {
 		return send_request(to->nexthop->connection, "%s", request);
 	}
 
+	alloc_node_data(from);
+	alloc_node_data(to);
+
 #ifndef DISABLE_LEGACY
 	/* Don't use key material until every check has passed. */
-	cipher_free(from->outcipher);
-	from->outcipher = NULL;
+	cipher_free(from->data->legacy.out.cipher);
+	from->data->legacy.out.cipher = NULL;
 
-	digest_free(from->outdigest);
-	from->outdigest = NULL;
+	digest_free(from->data->legacy.out.digest);
+	from->data->legacy.out.digest = NULL;
 #endif
 
 	if(!from->status.sptps) {
@@ -530,7 +537,7 @@ bool ans_key_h(connection_t *c, const char *request) {
 		return true;
 	}
 
-	from->outcompression = compression;
+	from->data->out.compression = compression;
 
 	/* SPTPS or old-style key exchange? */
 
@@ -573,32 +580,32 @@ bool ans_key_h(connection_t *c, const char *request) {
 	/* Check and lookup cipher and digest algorithms */
 
 	if(cipher) {
-		from->outcipher = cipher_alloc();
+		from->data->legacy.out.cipher = cipher_alloc();
 
-		if(!cipher_open_by_nid(from->outcipher, cipher)) {
-			cipher_free(from->outcipher);
-			from->outcipher = NULL;
+		if(!cipher_open_by_nid(from->data->legacy.out.cipher, cipher)) {
+			cipher_free(from->data->legacy.out.cipher);
+			from->data->legacy.out.cipher = NULL;
 			logger(DEBUG_ALWAYS, LOG_ERR, "Node %s (%s) uses unknown cipher!", from->name, from->hostname);
 			return false;
 		}
 	} else {
-		from->outcipher = NULL;
+		from->data->legacy.out.cipher = NULL;
 	}
 
 	if(digest) {
-		from->outdigest = digest_alloc();
+		from->data->legacy.out.digest = digest_alloc();
 
-		if(!digest_open_by_nid(from->outdigest, digest, maclength)) {
-			digest_free(from->outdigest);
-			from->outdigest = NULL;
+		if(!digest_open_by_nid(from->data->legacy.out.digest, digest, maclength)) {
+			digest_free(from->data->legacy.out.digest);
+			from->data->legacy.out.digest = NULL;
 			logger(DEBUG_ALWAYS, LOG_ERR, "Node %s (%s) uses unknown digest!", from->name, from->hostname);
 			return false;
 		}
 	} else {
-		from->outdigest = NULL;
+		from->data->legacy.out.digest = NULL;
 	}
 
-	if(maclength != digest_length(from->outdigest)) {
+	if(maclength != digest_length(from->data->legacy.out.digest)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Node %s (%s) uses bogus MAC length!", from->name, from->hostname);
 		return false;
 	}
@@ -607,23 +614,23 @@ bool ans_key_h(connection_t *c, const char *request) {
 
 	size_t keylen = hex2bin(key, key, sizeof(key));
 
-	if(keylen != (from->outcipher ? cipher_keylength(from->outcipher) : 1)) {
+	if(keylen != (from->data->legacy.out.cipher ? cipher_keylength(from->data->legacy.out.cipher) : 1)) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Node %s (%s) uses wrong keylength!", from->name, from->hostname);
 		return true;
 	}
 
 	/* Update our copy of the origin's packet key */
 
-	if(from->outcipher && !cipher_set_key(from->outcipher, key, true)) {
+	if(from->data->legacy.out.cipher && !cipher_set_key(from->data->legacy.out.cipher, key, true)) {
 		return false;
 	}
 
-	if(from->outdigest && !digest_set_key(from->outdigest, key, keylen)) {
+	if(from->data->legacy.out.digest && !digest_set_key(from->data->legacy.out.digest, key, keylen)) {
 		return false;
 	}
 
 	from->status.validkey = true;
-	from->sent_seqno = 0;
+	from->data->legacy.sent_seqno = 0;
 
 	if(*address && *port) {
 		logger(DEBUG_PROTOCOL, LOG_DEBUG, "Using reflexive UDP address from %s: %s port %s", from->name, address, port);

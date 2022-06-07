@@ -178,9 +178,10 @@ bool send_udp_info(node_t *from, node_t *to) {
 			return true;
 		}
 
-		struct timeval elapsed;
+		alloc_node_data(to);
 
-		timersub(&now, &to->udp_info_sent, &elapsed);
+		struct timeval elapsed;
+		timersub(&now, &to->data->udp_info_sent, &elapsed);
 
 		if(elapsed.tv_sec < udp_info_interval) {
 			return true;
@@ -208,7 +209,8 @@ bool send_udp_info(node_t *from, node_t *to) {
 	free(from_port);
 
 	if(from == myself) {
-		to->udp_info_sent = now;
+		alloc_node_data(to);
+		to->data->udp_info_sent = now;
 	}
 
 	return x;
@@ -284,9 +286,10 @@ bool send_mtu_info(node_t *from, node_t *to, int mtu) {
 			return true;
 		}
 
-		struct timeval elapsed;
+		alloc_node_data(to);
 
-		timersub(&now, &to->mtu_info_sent, &elapsed);
+		struct timeval elapsed;
+		timersub(&now, &to->data->mtu_info_sent, &elapsed);
 
 		if(elapsed.tv_sec < mtu_info_interval) {
 			return true;
@@ -301,22 +304,23 @@ bool send_mtu_info(node_t *from, node_t *to, int mtu) {
 
 	node_t *via = (from->via == myself) ? from->nexthop : from->via;
 
-	if(from->minmtu == from->maxmtu && from->via == myself) {
+	if(from->data && from->data->minmtu == from->data->maxmtu && from->via == myself) {
 		/* We have a direct measurement. Override the value entirely.
 		   Note that we only do that if we are sitting as a static relay in the path;
 		   otherwise, we can't guarantee packets will flow through us, and increasing
 		   MTU could therefore end up being too optimistic. */
-		mtu = from->minmtu;
-	} else if(via->minmtu == via->maxmtu) {
+		mtu = from->data->minmtu;
+	} else if(via->data && via->data->minmtu == via->data->maxmtu) {
 		/* Static relay. Ensure packets will make it through the entire relay path. */
-		mtu = MIN(mtu, via->minmtu);
-	} else if(via->nexthop->minmtu == via->nexthop->maxmtu) {
+		mtu = MIN(mtu, via->data->minmtu);
+	} else if(via->nexthop->data && via->nexthop->data->minmtu == via->nexthop->data->maxmtu) {
 		/* Dynamic relay. Ensure packets will make it through the entire relay path. */
-		mtu = MIN(mtu, via->nexthop->minmtu);
+		mtu = MIN(mtu, via->nexthop->data->minmtu);
 	}
 
 	if(from == myself) {
-		to->mtu_info_sent = now;
+		alloc_node_data(to);
+		to->data->mtu_info_sent = now;
 	}
 
 	/* If none of the conditions above match in the steady state, it means we're using TCP,
@@ -358,7 +362,7 @@ bool mtu_info_h(connection_t *c, const char *request) {
 	/* If we don't know the current MTU for that node, use the one we received.
 	   Even if we're about to make our own measurements, the value we got from downstream nodes should be pretty close
 	   so it's a good idea to use it in the mean time. */
-	if(from->mtu != mtu && from->minmtu != from->maxmtu) {
+	if(from->mtu != mtu && from->data && from->data->minmtu != from->data->maxmtu) {
 		logger(DEBUG_TRAFFIC, LOG_INFO, "Using provisional MTU %d for node %s (%s)", mtu, from->name, from->hostname);
 		from->mtu = mtu;
 	}

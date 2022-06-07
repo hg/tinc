@@ -261,12 +261,14 @@ static void check_reachability(void) {
 			n->last_req_key = 0;
 
 			n->status.udp_confirmed = false;
-			n->maxmtu = MTU;
-			n->maxrecentlen = 0;
-			n->minmtu = 0;
-			n->mtuprobes = 0;
 
-			timeout_del(&n->udp_ping_timeout);
+			if(n->data) {
+				timeout_del(&n->data->udp_ping_timeout);
+				n->data->maxrecentlen = 0;
+				n->data->maxmtu = MTU;
+				n->data->minmtu = 0;
+				n->data->mtuprobes = 0;
+			}
 
 			char *name;
 			char *address;

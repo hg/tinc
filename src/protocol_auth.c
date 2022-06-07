@@ -492,7 +492,7 @@ bool send_metakey(connection_t *c) {
 	   by Cipher.
 	*/
 
-	const char *cipher_name = get_cipher_name(myself->incipher);
+	const char *cipher_name = get_cipher_name(myself->data->legacy.in.cipher);
 
 	if(!init_crypto_by_name(&ctx->out, cipher_name, "sha256")) {
 		logger(DEBUG_ALWAYS, LOG_ERR, "Error during initialisation of cipher or digest to %s (%s)", c->name, c->hostname);

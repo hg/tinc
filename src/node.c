@@ -74,19 +74,49 @@ void exit_nodes(void) {
 node_t *new_node(const char *name) {
 	node_t *n = xzalloc(sizeof(*n));
 
-	if(replaywin) {
-		n->late = xzalloc(replaywin);
-	}
-
 	init_subnet_tree(&n->subnet_tree);
 	init_edge_tree(&n->edge_tree);
 
 	n->mtu = MTU;
-	n->maxmtu = MTU;
-	n->udp_ping_rtt = -1;
 	n->name = xstrdup(name);
 
 	return n;
+}
+
+void alloc_node_data(node_t *n) {
+	if(!n->data) {
+		n->data = xzalloc(sizeof(node_data_t));
+		n->data->udp_ping_rtt = -1;
+		n->data->maxmtu = MTU;
+
+#ifndef DISABLE_LEGACY
+
+		if(replaywin) {
+			n->data->legacy.late = xzalloc(replaywin);
+		}
+
+#endif
+	}
+}
+
+#ifndef DISABLE_LEGACY
+static void free_node_legacy(node_legacy_t *legacy) {
+	cipher_free(legacy->in.cipher);
+	digest_free(legacy->in.digest);
+	cipher_free(legacy->out.cipher);
+	digest_free(legacy->out.digest);
+	free(legacy->late);
+}
+#endif
+
+void free_node_data(node_data_t *data) {
+	if(data) {
+#ifndef DISABLE_LEGACY
+		free_node_legacy(&data->legacy);
+#endif
+		timeout_del(&data->udp_ping_timeout);
+		free(data);
+	}
 }
 
 void free_node(node_t *n) {
@@ -99,21 +129,13 @@ void free_node(node_t *n) {
 
 	sockaddrfree(&n->address);
 
-#ifndef DISABLE_LEGACY
-	cipher_free(n->incipher);
-	digest_free(n->indigest);
-	cipher_free(n->outcipher);
-	digest_free(n->outdigest);
-#endif
+	free_node_data(n->data);
 
 	ecdsa_free(n->ecdsa);
 	sptps_stop(&n->sptps);
 
-	timeout_del(&n->udp_ping_timeout);
-
 	free(n->hostname);
 	free(n->name);
-	free(n->late);
 
 	if(n->address_cache) {
 		close_address_cache(n->address_cache);
@@ -192,10 +214,13 @@ void update_node_udp(node_t *n, const sockaddr_t *sa) {
 	/* invalidate UDP information - note that this is a security feature as well to make sure
 	   we can't be tricked into flooding any random address with UDP packets */
 	n->status.udp_confirmed = false;
-	n->maxrecentlen = 0;
-	n->mtuprobes = 0;
-	n->minmtu = 0;
-	n->maxmtu = MTU;
+
+	if(n->data) {
+		n->data->maxrecentlen = 0;
+		n->data->mtuprobes = 0;
+		n->data->minmtu = 0;
+		n->data->maxmtu = MTU;
+	}
 }
 
 bool dump_nodes(connection_t *c) {
@@ -212,12 +237,25 @@ bool dump_nodes(connection_t *c) {
 #ifdef DISABLE_LEGACY
 		             0, 0, 0UL,
 #else
-		             cipher_get_nid(n->outcipher), digest_get_nid(n->outdigest), (unsigned long)digest_length(n->outdigest),
+		             n->data ? cipher_get_nid(n->data->legacy.out.cipher) : 0,
+		             n->data ? digest_get_nid(n->data->legacy.out.digest) : 0,
+		             n->data ? (unsigned long)digest_length(n->data->legacy.out.digest) : 0,
 #endif
-		             n->outcompression, n->options, n->status.value,
-		             n->nexthop ? n->nexthop->name : "-", n->via && n->via->name ? n->via->name : "-", n->distance,
-		             n->mtu, n->minmtu, n->maxmtu, (long)n->last_state_change, n->udp_ping_rtt,
-		             n->in_packets, n->in_bytes, n->out_packets, n->out_bytes);
+		             n->data ? n->data->out.compression : COMPRESS_NONE,
+		             n->options,
+		             n->status.value,
+		             n->nexthop ? n->nexthop->name : "-",
+		             n->via && n->via->name ? n->via->name : "-",
+		             n->distance,
+		             n->mtu,
+		             n->data ? n->data->minmtu : 0,
+		             n->data ? n->data->maxmtu : 0,
+		             (long)n->last_state_change,
+		             n->data ? n->data->udp_ping_rtt : 0,
+		             n->data ? n->data->in.packets : 0,
+		             n->data ? n->data->in.bytes : 0,
+		             n->data ? n->data->out.packets : 0,
+		             n->data ? n->data->out.bytes : 0);
 	}
 
 	return send_request(c, "%d %d", CONTROL, REQ_DUMP_NODES);
@@ -226,7 +264,11 @@ bool dump_nodes(connection_t *c) {
 bool dump_traffic(connection_t *c) {
 	for splay_each(node_t, n, &node_tree)
 		send_request(c, "%d %d %s %"PRIu64" %"PRIu64" %"PRIu64" %"PRIu64, CONTROL, REQ_DUMP_TRAFFIC,
-		             n->name, n->in_packets, n->in_bytes, n->out_packets, n->out_bytes);
+		             n->name,
+		             n->data ? n->data->in.packets : 0,
+		             n->data ? n->data->in.bytes : 0,
+		             n->data ? n->data->out.packets : 0,
+		             n->data ? n->data->out.bytes : 0);
 
 	return send_request(c, "%d %d", CONTROL, REQ_DUMP_TRAFFIC);
 }

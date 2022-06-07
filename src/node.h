@@ -28,6 +28,7 @@
 #include "event.h"
 #include "subnet.h"
 #include "compression.h"
+#include "xalloc.h"
 
 typedef union node_status_t {
 	struct {
@@ -48,6 +49,49 @@ typedef union node_status_t {
 	uint32_t value;
 } node_status_t;
 
+#ifndef DISABLE_LEGACY
+typedef struct node_legacy_t {
+	struct {
+		cipher_t *cipher;                     /* Cipher for UDP packets */
+		digest_t *digest;                     /* Digest for UDP packets */
+	} in, out;
+
+	uint32_t sent_seqno;                    /* Sequence number last sent to this node */
+	uint32_t received_seqno;                /* Sequence number last received from this node */
+	uint32_t farfuture;                     /* Packets in a row that have arrived from the far future */
+	uint8_t *late;                          /* Bitfield marking late packets */
+} node_legacy_t;
+#endif
+
+typedef struct node_data_t {
+#ifndef DISABLE_LEGACY
+	node_legacy_t legacy;
+#endif
+
+	struct {
+		uint64_t packets;                   /* Packets sent or received */
+		uint64_t bytes;                     /* Bytes sent or received */
+		compression_level_t compression;    /* Compression level used to send/receive data */
+	} in, out;
+
+	struct timeval udp_reply_sent;          /* Last time a (gratuitous) UDP probe reply was sent */
+	struct timeval udp_ping_sent;           /* Last time a UDP probe was sent */
+
+	timeout_t udp_ping_timeout;             /* Ping timeout event */
+
+	length_t minmtu;                        /* Probed minimum MTU */
+	length_t maxmtu;                        /* Probed maximum MTU */
+	int mtuprobes;                          /* Number of probes */
+
+	struct timeval mtu_ping_sent;           /* Last time a MTU probe was sent */
+	struct timeval mtu_info_sent;           /* Last time a MTU_INFO message was sent */
+	struct timeval udp_info_sent;           /* Last time a UDP_INFO message was sent */
+
+	length_t maxrecentlen;                  /* Maximum size of recently received packets */
+
+	int udp_ping_rtt;                       /* Round trip time of UDP ping (in microseconds; or -1 if !status.udp_confirmed) */
+} node_data_t;
+
 typedef struct node_t {
 	char *name;                             /* name of this node */
 	char *hostname;                         /* the hostname of its real ip */
@@ -64,17 +108,6 @@ typedef struct node_t {
 	ecdsa_t *ecdsa;                         /* His public ECDSA key */
 	sptps_t sptps;
 
-#ifndef DISABLE_LEGACY
-	cipher_t *incipher;                     /* Cipher for UDP packets */
-	digest_t *indigest;                     /* Digest for UDP packets */
-
-	cipher_t *outcipher;                    /* Cipher for UDP packets */
-	digest_t *outdigest;                    /* Digest for UDP packets */
-#endif
-
-	compression_level_t incompression;      /* Compression level, 0 = no compression */
-	compression_level_t outcompression;     /* Compression level, 0 = no compression */
-
 	int distance;
 	struct node_t *nexthop;                 /* nearest node from us to him */
 	struct edge_t *prevedge;                /* nearest node from him to us */
@@ -85,40 +118,18 @@ typedef struct node_t {
 	splay_tree_t edge_tree;                 /* Edges with this node as one of the endpoints */
 
 	struct connection_t *connection;        /* Connection associated with this node (if a direct connection exists) */
-
-	uint32_t sent_seqno;                    /* Sequence number last sent to this node */
-	uint32_t received_seqno;                /* Sequence number last received from this node */
-	uint32_t received;                      /* Total valid packets received from this node */
-	uint32_t farfuture;                     /* Packets in a row that have arrived from the far future */
-	uint8_t *late;                          /* Bitfield marking late packets */
-
-	struct timeval udp_reply_sent;          /* Last time a (gratuitous) UDP probe reply was sent */
-	struct timeval udp_ping_sent;           /* Last time a UDP probe was sent */
-	int udp_ping_rtt;                       /* Round trip time of UDP ping (in microseconds; or -1 if !status.udp_confirmed) */
-	timeout_t udp_ping_timeout;             /* Ping timeout event */
-
-	struct timeval mtu_ping_sent;           /* Last time a MTU probe was sent */
-
-	struct timeval mtu_info_sent;           /* Last time a MTU_INFO message was sent */
-	struct timeval udp_info_sent;           /* Last time a UDP_INFO message was sent */
-
-	length_t maxrecentlen;                  /* Maximum size of recently received packets */
+	node_data_t *data;
 
 	length_t mtu;                           /* Maximum size of packets to send to this node */
-	length_t minmtu;                        /* Probed minimum MTU */
-	length_t maxmtu;                        /* Probed maximum MTU */
-	int mtuprobes;                          /* Number of probes */
-
-	uint64_t in_packets;
-	uint64_t in_bytes;
-	uint64_t out_packets;
-	uint64_t out_bytes;
 
 	struct address_cache_t *address_cache;
 } node_t;
 
 extern struct node_t *myself;
 extern splay_tree_t node_tree;
+
+void free_node_data(node_data_t *data);
+void alloc_node_data(node_t *n);
 
 extern void exit_nodes(void);
 extern void free_node(node_t *n);
