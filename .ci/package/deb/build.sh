@@ -9,10 +9,6 @@ bail() {
   exit 1
 }
 
-find_tag() {
-  git describe --always --tags --match='release-*' "$@"
-}
-
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get install -y devscripts git-buildpackage dh-make
@@ -48,5 +44,10 @@ cp "$templates/"* debian/
 # remove useless READMEs created by dh_make
 rm -f debian/README.*
 
-dpkg-buildpackage -rfakeroot -us -uc -b
+if [[ -n "${HOST:-}" ]]; then
+  dpkg-buildpackage -rfakeroot -us -uc -b --host-arch "$HOST"
+else
+  dpkg-buildpackage -rfakeroot -us -uc -b
+fi
+
 mv ../*.deb .

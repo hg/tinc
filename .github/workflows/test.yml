@@ -20,6 +20,7 @@ jobs:
       matrix:
         arch:
           - armhf
+          - arm64
           - mipsel
           - mingw
 
@@ -54,6 +55,18 @@ jobs:
           name: tests_cross_${{ matrix.arch }}
           path: /tmp/logs/tests.*.tar.gz
         if: always()
+
+      - name: Build package
+        run: HOST=${{ matrix.arch }} sh .ci/package/build.sh
+        if: github.ref == 'refs/heads/1.1' || startsWith(github.ref, 'refs/tags/release-')
+        continue-on-error: true
+
+      - name: Upload package
+        uses: actions/upload-artifact@v2
+        with:
+          name: pkg-${{ env.ARTIFACT }}
+          path: "*.deb"
+        continue-on-error: true
 
   muon:
     runs-on: ubuntu-22.04
@@ -269,6 +282,7 @@ jobs:
     needs:
       - linux
       - mingw
+      - cross
 
     steps:
       - name: Create artifact directory
