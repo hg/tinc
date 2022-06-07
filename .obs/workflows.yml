@@ -1,0 +1,9 @@
+rebuild_latest:
+  steps:
+    - rebuild_package:
+        project: home:cromulent
+        package: tinc
+  filters:
+    event: push
+
+
