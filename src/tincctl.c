@@ -3321,6 +3321,7 @@ int main(int argc, char *argv[]) {
 	tty = isatty(0) && isatty(1);
 
 	fprintf(stderr, "hello world\n");
+	fprintf(stderr, "hello world 2\n");
 
 	if(!parse_options(argc, argv)) {
 		return 1;
