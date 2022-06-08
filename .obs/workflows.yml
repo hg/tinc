@@ -1,9 +1,16 @@
-rebuild_latest:
+rebuild_pre:
+  steps:
+    - rebuild_package:
+        project: home:cromulent
+        package: tinc-pre
+  filters:
+    event: push
+
+rebuild_stable:
   steps:
     - rebuild_package:
         project: home:cromulent
         package: tinc
   filters:
-    event: push
-
+    event: tag
 
