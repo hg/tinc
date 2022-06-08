@@ -3320,6 +3320,8 @@ int main(int argc, char *argv[]) {
 	orig_argv = argv;
 	tty = isatty(0) && isatty(1);
 
+	fprintf(stderr, "hello world\n");
+
 	if(!parse_options(argc, argv)) {
 		return 1;
 	}
